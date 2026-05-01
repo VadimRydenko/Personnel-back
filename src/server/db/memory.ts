@@ -32,6 +32,7 @@ for (const seed of [
 ]) {
   const id = randomUUID();
   const t = nowIso();
+
   employees.set(id, { id, createdAt: t, updatedAt: t, ...seed });
 }
 
@@ -57,13 +58,17 @@ export function createEmployee(data: EmployeeCreate) {
   const id = randomUUID();
   const t = nowIso();
   const employee: Employee = { id, createdAt: t, updatedAt: t, ...data };
+
   employees.set(id, employee);
+
   return employee;
 }
 
 export function updateEmployee(id: string, patch: EmployeeUpdate) {
   const existing = employees.get(id);
+
   if (!existing) return null;
+
   const updated: Employee = {
     ...existing,
     firstName: patch.firstName ?? existing.firstName,
@@ -71,11 +76,12 @@ export function updateEmployee(id: string, patch: EmployeeUpdate) {
     title: patch.title ?? existing.title,
     updatedAt: nowIso(),
   };
+
   employees.set(id, updated);
+
   return updated;
 }
 
 export function deleteEmployee(id: string) {
   return employees.delete(id);
 }
-

@@ -34,12 +34,11 @@ export function createApp() {
     if (err instanceof SyntaxError) {
       return res.status(400).json({ message: "Invalid JSON" });
     }
-
-    // eslint-disable-next-line no-console
+     
     console.error(err);
+
     return res.status(500).json({ message: "Internal server error" });
   });
 
   return app;
 }
-
