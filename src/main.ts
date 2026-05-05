@@ -16,7 +16,6 @@ async function bootstrap() {
   });
 
   await app.listen(env.PORT);
-  // eslint-disable-next-line no-console
   console.log(`API listening on http://localhost:${env.PORT}`);
 }
 

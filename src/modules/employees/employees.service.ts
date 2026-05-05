@@ -36,6 +36,7 @@ export class EmployeesService {
     ]) {
       const id = randomUUID();
       const t = nowIso();
+
       this.employees.set(id, { id, createdAt: t, updatedAt: t, ...seed });
     }
   }
@@ -62,12 +63,15 @@ export class EmployeesService {
     const id = randomUUID();
     const t = nowIso();
     const employee: Employee = { id, createdAt: t, updatedAt: t, ...data };
+
     this.employees.set(id, employee);
+
     return employee;
   }
 
   updateEmployee(id: string, patch: EmployeeUpdate) {
     const existing = this.employees.get(id);
+
     if (!existing) return null;
 
     const updated: Employee = {
@@ -79,6 +83,7 @@ export class EmployeesService {
     };
 
     this.employees.set(id, updated);
+
     return updated;
   }
 
