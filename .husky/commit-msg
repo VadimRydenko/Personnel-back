@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/h"
+
+msg_file="$1"
+min_len=10
+
+subject="$(
+  awk '
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*$/ { next }
+    { print; exit }
+  ' "$msg_file"
+)"
+
+len="$(printf "%s" "$subject" | wc -m | tr -d "[:space:]")"
+
+if [ "${len:-0}" -lt "$min_len" ]; then
+  echo "✖ Commit message is too short: ${len:-0} chars (min ${min_len})." >&2
+  echo "  Message: \"$subject\"" >&2
+  exit 1
+fi
+
