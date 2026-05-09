@@ -5,7 +5,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import prettier from "eslint-config-prettier";
 
 export default defineConfig([
-  globalIgnores(["dist", "node_modules"]),
+  globalIgnores(["dist", "node_modules", "src/generated/prisma", "prisma/migrations"]),
   {
     files: ["**/*.{ts,js}"],
     extends: [js.configs.recommended, ...tseslint.configs.recommended, prettier],

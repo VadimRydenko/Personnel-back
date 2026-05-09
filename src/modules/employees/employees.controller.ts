@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, Res } from "@nestjs/common";
 import type { Response } from "express";
 import { z } from "zod";
-import { EmployeesService } from "./employees.service";
+import { EmployeesService } from "./employees.service.js";
 
 const ListQuerySchema = z.object({
   q: z.string().optional(),
