@@ -3,14 +3,27 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 
 const roles = [
-  { id: 1, roleName: "ALL_FULL_ACCESS", notes: "Полный доступ ко всему штату и наличию" },
-  { id: 12, roleName: "CUZ_FULL_ACCESS", notes: "Полный доступ к штату и наличию ЦУЗ" },
-  { id: 3, roleName: "1_VIDDIL_GVROS", notes: "1 отдел ГВРОС" },
-  { id: 2, roleName: "STAFF_VIEW_ALL", notes: "Полный доступ к штату" },
-  { id: 5, roleName: "2_VIDDIL_GVROS", notes: "2 отдел ГВРОС" },
-  { id: 7, roleName: "PERSONNEL_VIEW_SHORT", notes: "Просмотр ограниченной информации по всему Департаменту" },
-  { id: 8, roleName: "4_VIDDIL_GVROS", notes: "4 отдел ГВРОС" },
-  { id: 9, roleName: "PERSONNEL_VIEW_ALL", notes: "Полный доступ к наличию" },
+  {
+    id: 1,
+    roleName: "SECURITY_ADMIN",
+    notes:
+      "Адміністратор безпеки — керування політиками доступу, аудитом, ролями, без доступу до даних реєстру",
+  },
+  {
+    id: 2,
+    roleName: "REGISTRY_OPERATOR",
+    notes: "Оператор/Реєстратор — робота з даними реєстру в межах повноважень",
+  },
+  {
+    id: 3,
+    roleName: "ANALYST",
+    notes: "Аналітик — робота з аналітикою реєстру",
+  },
+  {
+    id: 4,
+    roleName: "SERVICE_ACCOUNT",
+    notes: "Сервісний обліковий запис — для міжсистемної взаємодії",
+  },
 ] as const;
 
 const connectionString = process.env.DATABASE_URL;
@@ -24,6 +37,14 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
+  await prisma.role.deleteMany({
+    where: {
+      roleName: {
+        notIn: roles.map((role) => role.roleName),
+      },
+    },
+  });
+
   for (const role of roles) {
     await prisma.role.upsert({
       where: { roleName: role.roleName },
