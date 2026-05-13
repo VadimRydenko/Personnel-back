@@ -57,6 +57,7 @@ export class BootstrapService implements OnModuleInit {
             name: "Bootstrap administrator",
             mustChangePassword: false,
             tempPassword: null,
+            passwordChangedAt: new Date(),
             roles: {
               create: [{ role: { connect: { id: securityRole.id } } }],
             },

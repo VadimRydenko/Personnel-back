@@ -44,6 +44,7 @@ export class MeService {
       email: user.email,
       name: user.name,
       mustChangePassword: user.mustChangePassword,
+      passwordChangedAt: user.passwordChangedAt ? user.passwordChangedAt.toISOString() : null,
       roles: user.roles.map((r) => ({
         id: r.role.id,
         roleName: r.role.roleName,

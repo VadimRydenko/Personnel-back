@@ -1,6 +1,12 @@
 import { env } from "../../lib/env.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../../generated/prisma/client.js";
+import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  checkPasswordPolicy,
+  isPasswordExpiredByMaxAge,
+} from "../../lib/password-policy.js";
 
 const authPrisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: env.DATABASE_URL }),
@@ -17,6 +23,7 @@ export async function getAuth() {
 async function buildAuth() {
   const { betterAuth } = await import("better-auth");
   const { prismaAdapter } = await import("better-auth/adapters/prisma");
+  const { APIError, createAuthMiddleware } = await import("better-auth/api");
 
   return betterAuth({
     baseURL: env.BETTER_AUTH_URL,
@@ -25,6 +32,8 @@ async function buildAuth() {
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
+      minPasswordLength: MIN_PASSWORD_LENGTH,
+      maxPasswordLength: MAX_PASSWORD_LENGTH,
     },
     user: {
       additionalFields: {
@@ -40,12 +49,38 @@ async function buildAuth() {
           input: false,
           returned: false,
         },
+        passwordChangedAt: {
+          type: "date",
+          required: false,
+          input: false,
+        },
       },
     },
     database: prismaAdapter(authPrisma, {
       provider: "postgresql",
     }),
     experimental: { joins: true },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === "/change-password" || ctx.path === "/set-password") {
+          const body = (ctx.body ?? {}) as {
+            newPassword?: string;
+            currentPassword?: string;
+          };
+          const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
+          const currentPassword =
+            typeof body.currentPassword === "string" ? body.currentPassword : undefined;
+          const check = checkPasswordPolicy(newPassword, { currentPassword });
+
+          if (!check.ok) {
+            throw new APIError("BAD_REQUEST", {
+              code: check.code,
+              message: check.message,
+            });
+          }
+        }
+      }),
+    },
     databaseHooks: {
       account: {
         update: {
@@ -63,15 +98,35 @@ async function buildAuth() {
 
             if (!userId) return;
 
+            await authPrisma.user.update({
+              where: { id: userId },
+              data: {
+                mustChangePassword: false,
+                tempPassword: null,
+                passwordChangedAt: new Date(),
+              },
+            });
+          },
+        },
+      },
+      session: {
+        create: {
+          after: async (session) => {
+            const userId = typeof session.userId === "string" ? session.userId : undefined;
+
+            if (!userId) return;
+
             const user = await authPrisma.user.findUnique({
               where: { id: userId },
-              select: { mustChangePassword: true },
+              select: { passwordChangedAt: true, mustChangePassword: true },
             });
 
-            if (user?.mustChangePassword) {
+            if (!user) return;
+
+            if (!user.mustChangePassword && isPasswordExpiredByMaxAge(user.passwordChangedAt)) {
               await authPrisma.user.update({
                 where: { id: userId },
-                data: { mustChangePassword: false, tempPassword: null },
+                data: { mustChangePassword: true },
               });
             }
           },

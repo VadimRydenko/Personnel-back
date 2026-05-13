@@ -1,7 +1,8 @@
 import { BadRequestException, ConflictException, Inject, Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { hashPassword, generateRandomString } from "better-auth/crypto";
+import { hashPassword } from "better-auth/crypto";
 import { PrismaService } from "../prisma/prisma.service.js";
+import { generateStrongPassword } from "../../lib/password-generator.js";
 
 export type CreateManagedUserInput = {
   email: string;
@@ -55,7 +56,7 @@ export class AdminService {
       throw new BadRequestException("One or more permissions are invalid");
     }
 
-    const plainPassword = generateRandomString(20);
+    const plainPassword = generateStrongPassword(20);
     const passwordHash = await hashPassword(plainPassword);
     const userId = randomUUID();
     const accountRowId = randomUUID();
@@ -69,6 +70,7 @@ export class AdminService {
           name: displayName,
           mustChangePassword: true,
           tempPassword: passwordHash,
+          passwordChangedAt: new Date(),
           roles: {
             create: input.roleIds.map((roleId) => ({
               role: { connect: { id: roleId } },
