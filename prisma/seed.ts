@@ -1,30 +1,13 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
+import { ACCOUNT_TYPE_CATALOG } from "../src/modules/accounts/account-types.js";
 
-const roles = [
-  {
-    id: 1,
-    roleName: "SECURITY_ADMIN",
-    notes:
-      "Адміністратор безпеки — керування політиками доступу, аудитом, ролями, без доступу до даних реєстру",
-  },
-  {
-    id: 2,
-    roleName: "REGISTRY_OPERATOR",
-    notes: "Оператор/Реєстратор — робота з даними реєстру в межах повноважень",
-  },
-  {
-    id: 3,
-    roleName: "ANALYST",
-    notes: "Аналітик — робота з аналітикою реєстру",
-  },
-  {
-    id: 4,
-    roleName: "SERVICE_ACCOUNT",
-    notes: "Сервісний обліковий запис — для міжсистемної взаємодії",
-  },
-] as const;
+const roles = ACCOUNT_TYPE_CATALOG.map((accountType, index) => ({
+  id: index + 1,
+  roleName: accountType.code,
+  notes: `${accountType.title} — ${accountType.description}`,
+}));
 
 const connectionString = process.env.DATABASE_URL;
 

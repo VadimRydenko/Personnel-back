@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, Res } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Patch, Post, Put, Query, Res } from "@nestjs/common";
 import type { Response } from "express";
 import { z } from "zod";
 import { EmployeesService } from "./employees.service.js";
@@ -19,7 +19,7 @@ const EmployeeUpdateSchema = EmployeeCreateSchema.partial();
 
 @Controller("/api/employees")
 export class EmployeesController {
-  constructor(private readonly employees: EmployeesService) {}
+  constructor(@Inject(EmployeesService) private readonly employees: EmployeesService) {}
 
   @Get("/")
   list(@Query() query: unknown, @Res() res: Response) {
