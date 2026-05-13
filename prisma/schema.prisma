@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -13,16 +11,20 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  name          String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  emailVerified Boolean   @default(false)
-  image         String?
-  sessions      Session[]
-  accounts      Account[]
-  roles         UserRole[]
+  id                 String           @id @default(uuid())
+  email              String           @unique
+  name               String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  emailVerified      Boolean          @default(false)
+  image              String?
+  mustChangePassword Boolean          @default(false) @map("must_change_password")
+  tempPassword       String?          @map("temp_password")
+  sessions           Session[]
+  accounts           Account[]
+  roles              UserRole[]
+  groups             UserGroup[]
+  permissions        UserPermission[]
 
   @@map("user")
 }
@@ -93,4 +95,63 @@ model UserRole {
   @@id([userId, roleId])
   @@index([roleId])
   @@map("user_role")
+}
+
+model Group {
+  id          String            @id @default(uuid())
+  name        String
+  slug        String            @unique
+  description String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  permissions GroupPermission[]
+  users       UserGroup[]
+
+  @@map("group")
+}
+
+model Permission {
+  id          String             @id @default(uuid())
+  code        String             @unique
+  label       String
+  description String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  groups      GroupPermission[]
+  users       UserPermission[]
+
+  @@map("permission")
+}
+
+model GroupPermission {
+  groupId      String
+  permissionId String
+  group        Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, permissionId])
+  @@index([permissionId])
+  @@map("group_permission")
+}
+
+model UserGroup {
+  userId  String
+  groupId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([userId, groupId])
+  @@index([groupId])
+  @@map("user_group")
+}
+
+model UserPermission {
+  userId       String
+  permissionId String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId])
+  @@index([permissionId])
+  @@map("user_permission")
 }
