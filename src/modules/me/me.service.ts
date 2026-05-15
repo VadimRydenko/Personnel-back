@@ -44,6 +44,8 @@ export class MeService {
       email: user.email,
       name: user.name,
       mustChangePassword: user.mustChangePassword,
+      blocked: user.blocked,
+      blockReason: user.blockReason,
       passwordChangedAt: user.passwordChangedAt ? user.passwordChangedAt.toISOString() : null,
       roles: user.roles.map((r) => ({
         id: r.role.id,

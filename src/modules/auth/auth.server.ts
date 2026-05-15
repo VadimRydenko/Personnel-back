@@ -54,6 +54,17 @@ async function buildAuth() {
           required: false,
           input: false,
         },
+        blocked: {
+          type: "boolean",
+          required: false,
+          defaultValue: false,
+          input: false,
+        },
+        blockReason: {
+          type: "string",
+          required: false,
+          input: false,
+        },
       },
     },
     database: prismaAdapter(authPrisma, {
@@ -62,6 +73,27 @@ async function buildAuth() {
     experimental: { joins: true },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === "/sign-in/email") {
+          const body = (ctx.body ?? {}) as { email?: string };
+          const raw = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+
+          if (!raw) {
+            return;
+          }
+
+          const row = await authPrisma.user.findUnique({
+            where: { email: raw },
+            select: { blocked: true },
+          });
+
+          if (row?.blocked) {
+            throw new APIError("FORBIDDEN", {
+              code: "USER_BLOCKED",
+              message: "Обліковий запис заблоковано",
+            });
+          }
+        }
+
         if (ctx.path === "/change-password" || ctx.path === "/set-password") {
           const body = (ctx.body ?? {}) as {
             newPassword?: string;

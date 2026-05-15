@@ -21,6 +21,8 @@ model User {
   mustChangePassword Boolean          @default(false) @map("must_change_password")
   tempPassword       String?          @map("temp_password")
   passwordChangedAt  DateTime?        @map("password_changed_at")
+  blocked            Boolean          @default(false)
+  blockReason        String?          @map("block_reason")
   sessions           Session[]
   accounts           Account[]
   roles              UserRole[]
