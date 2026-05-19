@@ -11,23 +11,25 @@ datasource db {
 }
 
 model User {
-  id                 String           @id @default(uuid())
-  email              String           @unique
+  id                 String    @id @default(uuid())
+  email              String    @unique
   name               String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  emailVerified      Boolean          @default(false)
-  image              String?
-  mustChangePassword Boolean          @default(false) @map("must_change_password")
-  tempPassword       String?          @map("temp_password")
-  passwordChangedAt  DateTime?        @map("password_changed_at")
-  blocked            Boolean          @default(false)
-  blockReason        String?          @map("block_reason")
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  tempPassword       String?   @map("temp_password")
+  passwordChangedAt  DateTime? @map("password_changed_at")
+  blocked            Boolean   @default(false)
+  blockReason        String?   @map("block_reason")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
   sessions           Session[]
   accounts           Account[]
   roles              UserRole[]
   groups             UserGroup[]
   permissions        UserPermission[]
+  // --- Better Auth (обов'язкові колонки; у додатку не читаються й не пишуться) ---
+  /// За замовчуванням false; верифікація email не увімкнена
+  emailVerified      Boolean   @default(false)
+  image              String?
 
   @@map("user")
 }
@@ -49,25 +51,29 @@ model Session {
 }
 
 model Account {
-  id                    String    @id
-  accountId             String
-  providerId            String
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String  @id
+  accountId  String
+  providerId String
+  userId     String
+  password   String?
+  // --- Better Auth: OAuth (обов'язкові колонки; не використовуються — залишаються NULL) ---
   accessToken           String?
   refreshToken          String?
   idToken               String?
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
   scope                 String?
-  password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  // --- Better Auth: метадані (у додатку не читаються) ---
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("account")
 }
 
+/// Коди верифікації Better Auth; у додатку не використовується
 model Verification {
   id         String   @id
   identifier String
