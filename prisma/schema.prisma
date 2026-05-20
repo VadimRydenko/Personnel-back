@@ -164,3 +164,83 @@ model UserPermission {
   @@index([permissionId])
   @@map("user_permission")
 }
+
+/// Довідник типів наказів (DORDER)
+model DOrder {
+  code Int    @id @default(autoincrement())
+  val  String
+
+  @@map("dorder")
+}
+
+/// Наказ (ORDERS)
+model PersonnelOrder {
+  code       Int      @id @default(autoincrement())
+  orderWhose Int      @map("order_whose")
+  orderNo    String   @map("order_no")
+  orderDate  DateTime @map("order_date")
+
+  @@index([orderWhose])
+  @@index([orderDate])
+  @@map("orders")
+}
+
+/// Довідник найменувань підрозділів (DUNIT)
+model DUnit {
+  code        Int    @id @default(autoincrement())
+  val         String @unique
+  valGenitive String @map("val_genitive")
+
+  @@map("dunit")
+}
+
+/// Довідник найменувань посад (DPLACE)
+model DPlace {
+  code Int    @id @default(autoincrement())
+  val  String @unique
+
+  @@map("dplace")
+}
+
+/// Підрозділ (UNITS)
+model OrgUnit {
+  code             Int       @id @default(autoincrement())
+  parentCode       Int?      @map("parent")
+  parent           OrgUnit?  @relation("OrgUnitTree", fields: [parentCode], references: [code], onDelete: Restrict)
+  children         OrgUnit[] @relation("OrgUnitTree")
+  unitTypeCode     Int       @map("unit")
+  name             String    @default("") @map("name")
+  sortOrder        Int       @map("unit_id")
+  validFrom        DateTime  @map("create_date") @db.Date
+  validTo          DateTime? @map("destroy_date") @db.Date
+  createOrderCode  Int       @map("create_order")
+  destroyOrderCode Int?      @map("destroy_order")
+  stationing       String    @default("Нема даних")
+  places           StaffPlace[]
+
+  @@index([parentCode])
+  @@index([parentCode, sortOrder])
+  @@index([validFrom, validTo])
+  @@map("units")
+}
+
+/// Штатна посада (PLACES)
+model StaffPlace {
+  code             Int       @id @default(autoincrement())
+  orgUnitCode      Int       @map("unit")
+  orgUnit          OrgUnit   @relation(fields: [orgUnitCode], references: [code], onDelete: Restrict)
+  placeTypeCode    Int       @map("place")
+  sortOrder        Int       @default(0) @map("place_id")
+  posCount         Float     @default(1) @map("pos_count")
+  isChief          Boolean   @default(false) @map("is_chief")
+  manCount         Int       @default(0) @map("man_count")
+  validFrom        DateTime  @map("create_date") @db.Date
+  validTo          DateTime? @map("destroy_date") @db.Date
+  createOrderCode  Int       @map("create_order")
+  destroyOrderCode Int?      @map("destroy_order")
+
+  @@index([orgUnitCode])
+  @@index([orgUnitCode, sortOrder])
+  @@index([validFrom, validTo])
+  @@map("places")
+}

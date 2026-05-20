@@ -1,0 +1,3 @@
+-- AddColumn
+ALTER TABLE "units" ADD COLUMN IF NOT EXISTS "name" TEXT NOT NULL DEFAULT '';
+

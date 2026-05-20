@@ -125,6 +125,34 @@ async function main() {
       create: { groupId: group.id, permissionId: permission.id },
     });
   }
+
+  const dOrder =
+    (await prisma.dOrder.findFirst({ where: { val: "Загальний" } })) ??
+    (await prisma.dOrder.create({ data: { val: "Загальний" } }));
+
+  const existingOrder = await prisma.personnelOrder.findFirst({ where: { orderNo: "1/2026" } });
+
+  if (!existingOrder) {
+    await prisma.personnelOrder.create({
+      data: {
+        orderWhose: dOrder.code,
+        orderNo: "1/2026",
+        orderDate: new Date("2026-01-15T00:00:00.000Z"),
+      },
+    });
+  }
+
+  await prisma.dUnit.upsert({
+    where: { val: "Рота" },
+    update: { valGenitive: "роти" },
+    create: { val: "Рота", valGenitive: "роти" },
+  });
+
+  await prisma.dPlace.upsert({
+    where: { val: "Командир роти" },
+    update: {},
+    create: { val: "Командир роти" },
+  });
 }
 
 main()
