@@ -30,6 +30,8 @@ const CreateOrgUnitBodySchema = z.object({
   parentCode: z.number().int().positive().nullable().optional(),
   unitTypeCode: z.number().int().positive(),
   name: z.string().min(1).max(120),
+  shortName: z.string().min(1).max(6).optional(),
+  city: z.string().min(1).max(100),
   createOrderCode: z.number().int().positive().optional(),
   createOrder: z
     .object({

@@ -7,7 +7,7 @@ import {
 import { PrismaService } from "../prisma/prisma.service.js";
 
 const orderSelect = { code: true, orderNo: true, orderDate: true } as const;
-const unitTypeSelect = { code: true, val: true, valGenitive: true } as const;
+const unitTypeSelect = { code: true, val: true, key: true } as const;
 const placeTypeSelect = { code: true, val: true } as const;
 
 type OrgUnitRow = {
@@ -15,6 +15,8 @@ type OrgUnitRow = {
   parentCode: number | null;
   unitTypeCode: number;
   name: string;
+  shortName: string | null;
+  city: string;
   sortOrder: number;
   validFrom: Date;
   validTo: Date | null;
@@ -41,6 +43,8 @@ export type CreateOrgUnitInput = {
   parentCode?: number | null | undefined;
   unitTypeCode: number;
   name: string;
+  shortName?: string | undefined;
+  city: string;
   createOrderCode?: number | undefined;
   createOrder?: { orderNo: string; orderDate: Date } | undefined;
   validFrom: Date;
@@ -53,6 +57,16 @@ export type CreateStaffPlaceInput = {
   validFrom: Date;
   posCount?: number | undefined;
   isChief?: boolean | undefined;
+};
+
+export type EnrichedOrgUnit = OrgUnitRow & {
+  unitType: { code: number; val: string; key: string } | null;
+  createOrder: { code: number; orderNo: string; orderDate: Date } | null;
+  destroyOrder: { code: number; orderNo: string; orderDate: Date } | null;
+};
+
+export type OrgUnitTreeNode = EnrichedOrgUnit & {
+  children: OrgUnitTreeNode[];
 };
 
 @Injectable()
@@ -80,7 +94,7 @@ export class OrgStructureService {
     const unique = [...new Set(codes)];
 
     if (unique.length === 0) {
-      return new Map<number, { code: number; val: string; valGenitive: string }>();
+      return new Map<number, { code: number; val: string; key: string }>();
     }
 
     const rows = await this.prisma.dUnit.findMany({
@@ -104,9 +118,9 @@ export class OrgStructureService {
     return new Map(rows.map((row) => [row.code, row]));
   }
 
-  private enrichOrgUnit(
+  private enrichOrgUnitFromRow(
     unit: OrgUnitRow,
-    unitTypes: Map<number, { code: number; val: string; valGenitive: string }>,
+    unitTypes: Map<number, { code: number; val: string; key: string }>,
     orders: Map<number, { code: number; orderNo: string; orderDate: Date }>,
   ) {
     return {
@@ -116,6 +130,52 @@ export class OrgStructureService {
       destroyOrder:
         unit.destroyOrderCode === null ? null : (orders.get(unit.destroyOrderCode) ?? null),
     };
+  }
+
+  private sortTreeNodes(nodes: OrgUnitTreeNode[]) {
+    nodes.sort((a, b) => a.sortOrder - b.sortOrder);
+
+    for (const node of nodes) {
+      this.sortTreeNodes(node.children);
+    }
+  }
+
+  private buildOrgUnitTree(units: EnrichedOrgUnit[]): OrgUnitTreeNode[] {
+    const byCode = new Map<number, OrgUnitTreeNode>(
+      units.map((unit) => [unit.code, { ...unit, children: [] }]),
+    );
+    const roots: OrgUnitTreeNode[] = [];
+
+    for (const unit of byCode.values()) {
+      if (unit.parentCode === null) {
+        roots.push(unit);
+        continue;
+      }
+
+      const parent = byCode.get(unit.parentCode);
+
+      if (parent) {
+        parent.children.push(unit);
+      } else {
+        roots.push(unit);
+      }
+    }
+
+    this.sortTreeNodes(roots);
+
+    return roots;
+  }
+
+  private findInTree(nodes: OrgUnitTreeNode[], code: number): OrgUnitTreeNode | null {
+    for (const node of nodes) {
+      if (node.code === code) return node;
+
+      const found = this.findInTree(node.children, code);
+
+      if (found) return found;
+    }
+
+    return null;
   }
 
   private enrichStaffPlace(
@@ -141,7 +201,7 @@ export class OrgStructureService {
       this.loadOrders(orderCodes),
     ]);
 
-    return units.map((unit) => this.enrichOrgUnit(unit, unitTypes, orders));
+    return units.map((unit) => this.enrichOrgUnitFromRow(unit, unitTypes, orders));
   }
 
   private async enrichStaffPlaces(places: StaffPlaceRow[]) {
@@ -253,15 +313,11 @@ export class OrgStructureService {
     return (agg._max.sortOrder ?? 0) + 1;
   }
 
-  async listOrgUnits(input: { parentCode?: number | null | undefined; activeOnly?: boolean }) {
-    const where: {
-      parentCode?: number | null;
-      validTo?: null;
-    } = {};
-
-    if (input.parentCode !== undefined) {
-      where.parentCode = input.parentCode;
-    }
+  async listOrgUnits(input: {
+    parentCode?: number | null | undefined;
+    activeOnly?: boolean;
+  }): Promise<OrgUnitTreeNode[]> {
+    const where: { validTo?: null } = {};
 
     if (input.activeOnly !== false) {
       where.validTo = null;
@@ -272,44 +328,54 @@ export class OrgStructureService {
       orderBy: [{ parentCode: "asc" }, { sortOrder: "asc" }],
     });
 
-    return this.enrichOrgUnits(units);
+    const enriched = await this.enrichOrgUnits(units);
+    const tree = this.buildOrgUnitTree(enriched);
+
+    if (input.parentCode === undefined || input.parentCode === null) {
+      return tree;
+    }
+
+    const subtree = this.findInTree(tree, input.parentCode);
+
+    if (!subtree) {
+      throw new NotFoundException(`Підрозділ з code=${input.parentCode} не знайдено`);
+    }
+
+    return [subtree];
   }
 
   async listUnitTypes() {
     return this.prisma.dUnit.findMany({
       orderBy: { val: "asc" },
-      select: { code: true, val: true, valGenitive: true },
+      select: { code: true, val: true, key: true },
     });
   }
 
   async getOrgUnit(code: number) {
-    const unit = await this.prisma.orgUnit.findUnique({
+    const exists = await this.prisma.orgUnit.findUnique({
       where: { code },
-      include: {
-        children: {
-          where: { validTo: null },
-          orderBy: { sortOrder: "asc" },
-        },
-        places: {
-          where: { validTo: null },
-          orderBy: { sortOrder: "asc" },
-        },
-      },
+      select: { code: true },
     });
+
+    if (!exists) {
+      throw new NotFoundException(`Підрозділ з code=${code} не знайдено`);
+    }
+
+    const tree = await this.listOrgUnits({ activeOnly: true });
+    const unit = this.findInTree(tree, code);
 
     if (!unit) {
       throw new NotFoundException(`Підрозділ з code=${code} не знайдено`);
     }
 
-    const { children, places, ...root } = unit;
-    const [enrichedRoot] = await this.enrichOrgUnits([root]);
-    const enrichedChildren = await this.enrichOrgUnits(children);
-    const enrichedPlaces = await this.enrichStaffPlaces(places);
+    const places = await this.prisma.staffPlace.findMany({
+      where: { orgUnitCode: code, validTo: null },
+      orderBy: { sortOrder: "asc" },
+    });
 
     return {
-      ...enrichedRoot,
-      children: enrichedChildren,
-      places: enrichedPlaces,
+      ...unit,
+      places: await this.enrichStaffPlaces(places),
     };
   }
 
@@ -327,6 +393,8 @@ export class OrgStructureService {
     const sortOrder = await this.nextUnitSortOrder(parentCode);
 
     const name = input.name.trim();
+    const shortName = input.shortName?.trim() || null;
+    const city = input.city.trim();
     let stationing = input.stationing?.trim() || "Нема даних";
 
     if (parentCode !== null && stationing === "Нема даних") {
@@ -345,6 +413,8 @@ export class OrgStructureService {
         parentCode,
         unitTypeCode: input.unitTypeCode,
         name,
+        shortName,
+        city,
         sortOrder,
         validFrom,
         createOrderCode,
@@ -358,7 +428,14 @@ export class OrgStructureService {
   }
 
   async listStaffPlaces(orgUnitCode: number, activeOnly = true) {
-    await this.getOrgUnit(orgUnitCode);
+    const unit = await this.prisma.orgUnit.findUnique({
+      where: { code: orgUnitCode },
+      select: { code: true },
+    });
+
+    if (!unit) {
+      throw new NotFoundException(`Підрозділ з code=${orgUnitCode} не знайдено`);
+    }
 
     const places = await this.prisma.staffPlace.findMany({
       where: {

@@ -187,9 +187,9 @@ model PersonnelOrder {
 
 /// Довідник найменувань підрозділів (DUNIT)
 model DUnit {
-  code        Int    @id @default(autoincrement())
-  val         String @unique
-  valGenitive String @map("val_genitive")
+  code Int    @id @default(autoincrement())
+  val  String @unique
+  key  String
 
   @@map("dunit")
 }
@@ -210,6 +210,8 @@ model OrgUnit {
   children         OrgUnit[] @relation("OrgUnitTree")
   unitTypeCode     Int       @map("unit")
   name             String    @default("") @map("name")
+  shortName        String?   @map("short_name")
+  city             String    @default("")
   sortOrder        Int       @map("unit_id")
   validFrom        DateTime  @map("create_date") @db.Date
   validTo          DateTime? @map("destroy_date") @db.Date

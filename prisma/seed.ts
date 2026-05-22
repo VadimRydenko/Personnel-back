@@ -142,11 +142,31 @@ async function main() {
     });
   }
 
-  await prisma.dUnit.upsert({
-    where: { val: "Рота" },
-    update: { valGenitive: "роти" },
-    create: { val: "Рота", valGenitive: "роти" },
-  });
+  const dUnitSeeds = [
+    { val: "Департамент", key: "department" },
+    { val: "Управління", key: "management" },
+    { val: "Відділ", key: "section" },
+    { val: "Сектор", key: "sector" },
+  ] as const;
+
+  for (const dUnit of dUnitSeeds) {
+    await prisma.dUnit.upsert({
+      where: { val: dUnit.val },
+      update: { key: dUnit.key },
+      create: { val: dUnit.val, key: dUnit.key },
+    });
+  }
+
+  const legacyRota = await prisma.dUnit.findUnique({ where: { val: "Рота" } });
+  const fallbackType = await prisma.dUnit.findUnique({ where: { val: "Сектор" } });
+
+  if (legacyRota && fallbackType) {
+    await prisma.orgUnit.updateMany({
+      where: { unitTypeCode: legacyRota.code },
+      data: { unitTypeCode: fallbackType.code },
+    });
+    await prisma.dUnit.delete({ where: { code: legacyRota.code } });
+  }
 
   await prisma.dPlace.upsert({
     where: { val: "Командир роти" },
