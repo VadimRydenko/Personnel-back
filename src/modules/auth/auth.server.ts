@@ -75,7 +75,10 @@ async function buildAuth() {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path === "/sign-in/email") {
           const body = (ctx.body ?? {}) as { email?: string };
-          const raw = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+          const raw =
+            typeof body.email === "string"
+              ? body.email.trim().toLowerCase()
+              : "";
 
           if (!raw) {
             return;
@@ -99,9 +102,12 @@ async function buildAuth() {
             newPassword?: string;
             currentPassword?: string;
           };
-          const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
+          const newPassword =
+            typeof body.newPassword === "string" ? body.newPassword : "";
           const currentPassword =
-            typeof body.currentPassword === "string" ? body.currentPassword : undefined;
+            typeof body.currentPassword === "string"
+              ? body.currentPassword
+              : undefined;
           const check = checkPasswordPolicy(newPassword, { currentPassword });
 
           if (!check.ok) {
@@ -117,7 +123,8 @@ async function buildAuth() {
       account: {
         update: {
           after: async (account) => {
-            let userId = typeof account.userId === "string" ? account.userId : undefined;
+            let userId =
+              typeof account.userId === "string" ? account.userId : undefined;
 
             if (!userId && typeof account.id === "string") {
               const row = await authPrisma.account.findUnique({
@@ -144,7 +151,8 @@ async function buildAuth() {
       session: {
         create: {
           after: async (session) => {
-            const userId = typeof session.userId === "string" ? session.userId : undefined;
+            const userId =
+              typeof session.userId === "string" ? session.userId : undefined;
 
             if (!userId) return;
 
@@ -155,7 +163,10 @@ async function buildAuth() {
 
             if (!user) return;
 
-            if (!user.mustChangePassword && isPasswordExpiredByMaxAge(user.passwordChangedAt)) {
+            if (
+              !user.mustChangePassword &&
+              isPasswordExpiredByMaxAge(user.passwordChangedAt)
+            ) {
               await authPrisma.user.update({
                 where: { id: userId },
                 data: { mustChangePassword: true },

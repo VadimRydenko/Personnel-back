@@ -31,4 +31,3 @@ Example REST resource (works great with `useQuery` / `useMutation`):
 ## CORS for frontend
 
 Set `FRONTEND_ORIGIN` (default `http://localhost:5173`) to match your frontend dev server.
-

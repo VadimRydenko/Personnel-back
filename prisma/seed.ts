@@ -113,13 +113,18 @@ async function main() {
 
   for (const link of groupPermLinks) {
     const group = await prisma.group.findUnique({ where: { slug: link.slug } });
-    const permission = await prisma.permission.findUnique({ where: { code: link.code } });
+    const permission = await prisma.permission.findUnique({
+      where: { code: link.code },
+    });
 
     if (!group || !permission) continue;
 
     await prisma.groupPermission.upsert({
       where: {
-        groupId_permissionId: { groupId: group.id, permissionId: permission.id },
+        groupId_permissionId: {
+          groupId: group.id,
+          permissionId: permission.id,
+        },
       },
       update: {},
       create: { groupId: group.id, permissionId: permission.id },
@@ -130,7 +135,9 @@ async function main() {
     (await prisma.dOrder.findFirst({ where: { val: "Загальний" } })) ??
     (await prisma.dOrder.create({ data: { val: "Загальний" } }));
 
-  const existingOrder = await prisma.personnelOrder.findFirst({ where: { orderNo: "1/2026" } });
+  const existingOrder = await prisma.personnelOrder.findFirst({
+    where: { orderNo: "1/2026" },
+  });
 
   if (!existingOrder) {
     await prisma.personnelOrder.create({
@@ -158,7 +165,9 @@ async function main() {
   }
 
   const legacyRota = await prisma.dUnit.findUnique({ where: { val: "Рота" } });
-  const fallbackType = await prisma.dUnit.findUnique({ where: { val: "Сектор" } });
+  const fallbackType = await prisma.dUnit.findUnique({
+    where: { val: "Сектор" },
+  });
 
   if (legacyRota && fallbackType) {
     await prisma.orgUnit.updateMany({

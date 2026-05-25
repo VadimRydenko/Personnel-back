@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Patch, Post, Put, Query, Res } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Res,
+} from "@nestjs/common";
 import type { Response } from "express";
 import { z } from "zod";
 import { EmployeesService } from "./employees.service.js";
@@ -19,13 +32,18 @@ const EmployeeUpdateSchema = EmployeeCreateSchema.partial();
 
 @Controller("/api/employees")
 export class EmployeesController {
-  constructor(@Inject(EmployeesService) private readonly employees: EmployeesService) {}
+  constructor(
+    @Inject(EmployeesService) private readonly employees: EmployeesService,
+  ) {}
 
   @Get("/")
   list(@Query() query: unknown, @Res() res: Response) {
     const parsed = ListQuerySchema.safeParse(query);
 
-    if (!parsed.success) return res.status(400).json({ message: "Invalid query", details: parsed.error });
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ message: "Invalid query", details: parsed.error });
 
     const data = this.employees.listEmployees(parsed.data);
 
@@ -36,7 +54,8 @@ export class EmployeesController {
   get(@Param("id") id: string, @Res() res: Response) {
     const employee = this.employees.getEmployee(id);
 
-    if (!employee) return res.status(404).json({ message: "Employee not found" });
+    if (!employee)
+      return res.status(404).json({ message: "Employee not found" });
 
     return res.status(200).json(employee);
   }
@@ -45,7 +64,10 @@ export class EmployeesController {
   create(@Body() body: unknown, @Res() res: Response) {
     const parsed = EmployeeCreateSchema.safeParse(body);
 
-    if (!parsed.success) return res.status(400).json({ message: "Invalid body", details: parsed.error });
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ message: "Invalid body", details: parsed.error });
 
     const employee = this.employees.createEmployee(parsed.data);
 
@@ -53,14 +75,22 @@ export class EmployeesController {
   }
 
   @Put("/:id")
-  replace(@Param("id") id: string, @Body() body: unknown, @Res() res: Response) {
+  replace(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @Res() res: Response,
+  ) {
     const parsed = EmployeeCreateSchema.safeParse(body);
 
-    if (!parsed.success) return res.status(400).json({ message: "Invalid body", details: parsed.error });
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ message: "Invalid body", details: parsed.error });
 
     const updated = this.employees.updateEmployee(id, parsed.data);
 
-    if (!updated) return res.status(404).json({ message: "Employee not found" });
+    if (!updated)
+      return res.status(404).json({ message: "Employee not found" });
 
     return res.status(200).json(updated);
   }
@@ -69,11 +99,15 @@ export class EmployeesController {
   patch(@Param("id") id: string, @Body() body: unknown, @Res() res: Response) {
     const parsed = EmployeeUpdateSchema.safeParse(body);
 
-    if (!parsed.success) return res.status(400).json({ message: "Invalid body", details: parsed.error });
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ message: "Invalid body", details: parsed.error });
 
     const updated = this.employees.updateEmployee(id, parsed.data);
 
-    if (!updated) return res.status(404).json({ message: "Employee not found" });
+    if (!updated)
+      return res.status(404).json({ message: "Employee not found" });
 
     return res.status(200).json(updated);
   }

@@ -175,10 +175,11 @@ model DOrder {
 
 /// Наказ (ORDERS)
 model PersonnelOrder {
-  code       Int      @id @default(autoincrement())
-  orderWhose Int      @map("order_whose")
-  orderNo    String   @map("order_no")
-  orderDate  DateTime @map("order_date")
+  code       Int        @id @default(autoincrement())
+  orderWhose Int        @map("order_whose")
+  orderNo    String     @map("order_no")
+  orderDate  DateTime   @map("order_date")
+  manPlaces  ManPlace[]
 
   @@index([orderWhose])
   @@index([orderDate])
@@ -218,7 +219,7 @@ model OrgUnit {
   createOrderCode  Int       @map("create_order")
   destroyOrderCode Int?      @map("destroy_order")
   stationing       String    @default("Нема даних")
-  places           StaffPlace[]
+  places           Place[]
 
   @@index([parentCode])
   @@index([parentCode, sortOrder])
@@ -227,22 +228,84 @@ model OrgUnit {
 }
 
 /// Штатна посада (PLACES)
-model StaffPlace {
-  code             Int       @id @default(autoincrement())
-  orgUnitCode      Int       @map("unit")
-  orgUnit          OrgUnit   @relation(fields: [orgUnitCode], references: [code], onDelete: Restrict)
-  placeTypeCode    Int       @map("place")
-  sortOrder        Int       @default(0) @map("place_id")
-  posCount         Float     @default(1) @map("pos_count")
-  isChief          Boolean   @default(false) @map("is_chief")
-  manCount         Int       @default(0) @map("man_count")
-  validFrom        DateTime  @map("create_date") @db.Date
-  validTo          DateTime? @map("destroy_date") @db.Date
-  createOrderCode  Int       @map("create_order")
-  destroyOrderCode Int?      @map("destroy_order")
+model Place {
+  code             Int        @id @default(autoincrement())
+  orgUnitCode      Int        @map("unit")
+  orgUnit          OrgUnit    @relation(fields: [orgUnitCode], references: [code], onDelete: Restrict)
+  placeTypeCode    Int        @map("place")
+  sortOrder        Int        @default(0) @map("place_id")
+  posCount         Float      @default(1) @map("pos_count")
+  isChief          Boolean    @default(false) @map("is_chief")
+  manCount         Int        @default(0) @map("man_count")
+  validFrom        DateTime   @map("create_date") @db.Date
+  validTo          DateTime?  @map("destroy_date") @db.Date
+  createOrderCode  Int        @map("create_order")
+  destroyOrderCode Int?       @map("destroy_order")
+  manPlaces        ManPlace[]
 
   @@index([orgUnitCode])
   @@index([orgUnitCode, sortOrder])
   @@index([validFrom, validTo])
   @@map("places")
+}
+
+/// Військовослужбовець (MAN)
+model Man {
+  code                Int       @id @default(autoincrement())
+  lastName            String    @map("lastname")
+  signature           String
+  firstName           String    @map("firstname")
+  middleName          String    @map("middlename")
+  bornPlace           String    @default("Нема даних") @map("bornplace")
+  birthday            DateTime? @db.Date
+  personalNo          String?   @map("personalno") @db.Char(8)
+  nationalityCode     Int       @map("nationality")
+  sex                 String    @default("Ч") @db.Char(1)
+  idNo                String?   @map("idno") @db.Char(10)
+  fromWhereCode       Int       @map("fromwhere")
+  sciLevel            String?   @map("scilevel")
+  sciRank             String?   @map("scirank")
+  vonDate             DateTime? @map("vondate") @db.Date
+  vlastCalced         DateTime? @map("vlastcalced") @db.Date
+  familyModeCode      Int       @map("familymode")
+  homeAddress         String    @default("Нема даних") @map("homeaddress")
+  validFrom           DateTime? @map("fromdate") @db.Date
+  validTo             DateTime  @default(dbgenerated("'2999-12-31'::date")) @map("todate") @db.Date
+  lastRankCode        Int?      @map("last_rank")
+  lastPlaceCode       Int?      @unique @map("last_place")
+  lastBeginworkCode   Int?      @map("last_beginwork")
+  lastEducationCode   Int?      @map("last_education")
+  lastMaryCode        Int?      @map("last_mary")
+  remarks             String?
+  manPlaces           ManPlace[] @relation("ManManPlaces")
+  lastPlace           ManPlace?  @relation("ManLastPlace", fields: [lastPlaceCode], references: [code], onDelete: SetNull)
+
+  @@index([lastName, firstName, middleName])
+  @@index([validFrom, validTo])
+  @@map("man")
+}
+
+/// Призначення на посаду (MANPLACES)
+model ManPlace {
+  code                   Int            @id @default(autoincrement())
+  manCode                Int            @map("man")
+  man                    Man            @relation("ManManPlaces", fields: [manCode], references: [code], onDelete: Restrict)
+  placeCode              Int?           @map("place")
+  place                  Place?         @relation(fields: [placeCode], references: [code], onDelete: Restrict)
+  sPlace                 String         @default("") @map("splace")
+  orderCode              Int            @map("whatorder")
+  order                  PersonnelOrder @relation(fields: [orderCode], references: [code], onDelete: Restrict)
+  validFrom              DateTime       @map("fromdate") @db.Date
+  validTo                DateTime       @default(dbgenerated("'2999-12-31'::date")) @map("todate") @db.Date
+  koef                   Float          @default(1)
+  percentRate            Float          @default(1) @map("percentrate")
+  fullName               String         @map("fullname")
+  byReasonOfUnitRename   String         @default("F") @map("byreasonof_unitrename") @db.Char(1)
+  lastPlaceForMan        Man?           @relation("ManLastPlace")
+
+  @@index([manCode])
+  @@index([placeCode])
+  @@index([validFrom])
+  @@index([validTo])
+  @@map("manplaces")
 }

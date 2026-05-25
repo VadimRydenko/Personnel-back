@@ -41,11 +41,21 @@ export class EmployeesService {
     }
   }
 
-  listEmployees(input: { q?: string | undefined; page: number; pageSize: number }) {
-    const all = Array.from(this.employees.values()).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  listEmployees(input: {
+    q?: string | undefined;
+    page: number;
+    pageSize: number;
+  }) {
+    const all = Array.from(this.employees.values()).sort((a, b) =>
+      a.createdAt < b.createdAt ? 1 : -1,
+    );
     const q = input.q?.trim().toLowerCase();
     const filtered = q
-      ? all.filter((e) => `${e.firstName} ${e.lastName} ${e.title ?? ""}`.toLowerCase().includes(q))
+      ? all.filter((e) =>
+          `${e.firstName} ${e.lastName} ${e.title ?? ""}`
+            .toLowerCase()
+            .includes(q),
+        )
       : all;
 
     const total = filtered.length;

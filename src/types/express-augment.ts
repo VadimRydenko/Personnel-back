@@ -3,6 +3,10 @@ import type { Request } from "express";
 
 type AuthInstance = Awaited<ReturnType<typeof getAuth>>;
 
-export type AppAuthSession = NonNullable<Awaited<ReturnType<AuthInstance["api"]["getSession"]>>>;
+export type AppAuthSession = NonNullable<
+  Awaited<ReturnType<AuthInstance["api"]["getSession"]>>
+>;
 
-export type AuthedRequest = Request & { authSession?: AppAuthSession | undefined };
+export type AuthedRequest = Request & {
+  authSession?: AppAuthSession | undefined;
+};

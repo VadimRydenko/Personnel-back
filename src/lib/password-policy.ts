@@ -3,9 +3,16 @@ export const MAX_PASSWORD_LENGTH = 128;
 export const PASSWORD_MAX_VALIDITY_DAYS = 180;
 export const MIN_PASSWORD_NOVELTY_RATIO = 0.5;
 
-export type PasswordComplexityIssue = "length" | "upper" | "lower" | "digit" | "special";
+export type PasswordComplexityIssue =
+  | "length"
+  | "upper"
+  | "lower"
+  | "digit"
+  | "special";
 
-export function getPasswordComplexityIssues(password: string): PasswordComplexityIssue[] {
+export function getPasswordComplexityIssues(
+  password: string,
+): PasswordComplexityIssue[] {
   const issues: PasswordComplexityIssue[] = [];
 
   if (password.length < MIN_PASSWORD_LENGTH) {
@@ -35,7 +42,10 @@ export function isPasswordComplexityOk(password: string): boolean {
   return getPasswordComplexityIssues(password).length === 0;
 }
 
-export function passwordNoveltyRatio(currentPassword: string, newPassword: string): number {
+export function passwordNoveltyRatio(
+  currentPassword: string,
+  newPassword: string,
+): number {
   const length = Math.max(currentPassword.length, newPassword.length, 1);
   let diff = 0;
 
@@ -48,8 +58,14 @@ export function passwordNoveltyRatio(currentPassword: string, newPassword: strin
   return diff / length;
 }
 
-export function isPasswordNovelEnough(currentPassword: string, newPassword: string): boolean {
-  return passwordNoveltyRatio(currentPassword, newPassword) >= MIN_PASSWORD_NOVELTY_RATIO;
+export function isPasswordNovelEnough(
+  currentPassword: string,
+  newPassword: string,
+): boolean {
+  return (
+    passwordNoveltyRatio(currentPassword, newPassword) >=
+    MIN_PASSWORD_NOVELTY_RATIO
+  );
 }
 
 export function complexityIssueLabel(issue: PasswordComplexityIssue): string {
@@ -75,7 +91,10 @@ export function passwordValidUntil(changedAt: Date): Date {
   return until;
 }
 
-export function isPasswordExpiredByMaxAge(changedAt: Date | null | undefined, now: Date = new Date()): boolean {
+export function isPasswordExpiredByMaxAge(
+  changedAt: Date | null | undefined,
+  now: Date = new Date(),
+): boolean {
   if (!changedAt) {
     return false;
   }
@@ -89,16 +108,18 @@ export function isPasswordExpiredByMaxAge(changedAt: Date | null | undefined, no
   return now > until;
 }
 
-export type PasswordPolicyAssertion = {
-  ok: true;
-} | {
-  ok: false;
-  code:
-    | "PASSWORD_COMPLEXITY"
-    | "PASSWORD_TOO_LONG"
-    | "PASSWORD_NOT_NOVEL_ENOUGH";
-  message: string;
-};
+export type PasswordPolicyAssertion =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      code:
+        | "PASSWORD_COMPLEXITY"
+        | "PASSWORD_TOO_LONG"
+        | "PASSWORD_NOT_NOVEL_ENOUGH";
+      message: string;
+    };
 
 export function checkPasswordPolicy(
   newPassword: string,
@@ -122,7 +143,10 @@ export function checkPasswordPolicy(
     };
   }
 
-  if (options.currentPassword !== undefined && !isPasswordNovelEnough(options.currentPassword, newPassword)) {
+  if (
+    options.currentPassword !== undefined &&
+    !isPasswordNovelEnough(options.currentPassword, newPassword)
+  ) {
     return {
       ok: false,
       code: "PASSWORD_NOT_NOVEL_ENOUGH",

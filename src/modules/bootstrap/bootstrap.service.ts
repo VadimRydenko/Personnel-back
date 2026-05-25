@@ -24,7 +24,9 @@ export class BootstrapService implements OnModuleInit {
     }
 
     if (!password) {
-      this.log.warn("BOOTSTRAP_ADMIN_EMAIL is set but BOOTSTRAP_ADMIN_PASSWORD is missing; skipping bootstrap user");
+      this.log.warn(
+        "BOOTSTRAP_ADMIN_EMAIL is set but BOOTSTRAP_ADMIN_PASSWORD is missing; skipping bootstrap user",
+      );
 
       return;
     }
@@ -34,7 +36,9 @@ export class BootstrapService implements OnModuleInit {
     });
 
     if (!securityRole) {
-      this.log.warn("SECURITY_ADMIN role not found in database; skipping bootstrap user");
+      this.log.warn(
+        "SECURITY_ADMIN role not found in database; skipping bootstrap user",
+      );
 
       return;
     }

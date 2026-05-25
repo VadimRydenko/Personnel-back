@@ -5,7 +5,10 @@ import { env } from "../../lib/env.js";
 import { PrismaClient } from "../../generated/prisma/client.js";
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   constructor() {
     super({
       adapter: new PrismaPg({ connectionString: env.DATABASE_URL }),

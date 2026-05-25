@@ -39,8 +39,14 @@ const PatchUserBodySchema = z
     blockReason: z.string().max(500).nullable().optional(),
   })
   .refine(
-    (d) => d.roleIds !== undefined || d.blocked !== undefined || d.blockReason !== undefined,
-    { message: "Body must include at least one of: roleIds, blocked, blockReason" },
+    (d) =>
+      d.roleIds !== undefined ||
+      d.blocked !== undefined ||
+      d.blockReason !== undefined,
+    {
+      message:
+        "Body must include at least one of: roleIds, blocked, blockReason",
+    },
   );
 
 @Controller("/api/admin")
@@ -61,7 +67,9 @@ export class AdminController {
     const parsed = ListUsersQuerySchema.safeParse(query);
 
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid query", details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ message: "Invalid query", details: parsed.error.flatten() });
     }
 
     const data = await this.admin.searchUsers(parsed.data);
@@ -87,7 +95,9 @@ export class AdminController {
     const parsed = CreateUserBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid body", details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ message: "Invalid body", details: parsed.error.flatten() });
     }
 
     const created = await this.admin.createManagedUser(parsed.data);
@@ -106,7 +116,9 @@ export class AdminController {
     const parsed = PatchUserBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid body", details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ message: "Invalid body", details: parsed.error.flatten() });
     }
 
     const session = req.authSession;
@@ -115,14 +127,22 @@ export class AdminController {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const updated = await this.admin.patchUser(session.user.id, id, parsed.data);
+    const updated = await this.admin.patchUser(
+      session.user.id,
+      id,
+      parsed.data,
+    );
 
     return res.status(200).json(updated);
   }
 
   @Post("/users/:id/reset-password")
   @UseGuards(AuthenticatedGuard, SecurityAdminGuard)
-  async resetPassword(@Param("id") id: string, @Req() req: AuthedRequest, @Res() res: Response) {
+  async resetPassword(
+    @Param("id") id: string,
+    @Req() req: AuthedRequest,
+    @Res() res: Response,
+  ) {
     const session = req.authSession;
 
     if (!session?.user?.id) {

@@ -5,7 +5,10 @@ import { AuthContextService } from "../auth-context.service.js";
 
 @Injectable()
 export class AuthenticatedGuard implements CanActivate {
-  constructor(@Inject(AuthContextService) private readonly authContext: AuthContextService) {}
+  constructor(
+    @Inject(AuthContextService)
+    private readonly authContext: AuthContextService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<AuthedRequest>();

@@ -7,7 +7,9 @@ export const ACCOUNT_TYPES = {
 
 export type AccountType = (typeof ACCOUNT_TYPES)[keyof typeof ACCOUNT_TYPES];
 
-export const ACCOUNT_TYPE_VALUES = Object.values(ACCOUNT_TYPES) as AccountType[];
+export const ACCOUNT_TYPE_VALUES = Object.values(
+  ACCOUNT_TYPES,
+) as AccountType[];
 
 export type AccountTypeDefinition = {
   code: AccountType;
@@ -45,7 +47,10 @@ export const ACCOUNT_TYPE_CATALOG: ReadonlyArray<AccountTypeDefinition> = [
 ];
 
 export function isAccountType(value: unknown): value is AccountType {
-  return typeof value === "string" && ACCOUNT_TYPE_VALUES.includes(value as AccountType);
+  return (
+    typeof value === "string" &&
+    ACCOUNT_TYPE_VALUES.includes(value as AccountType)
+  );
 }
 
 export function getAccountTypeDefinition(

@@ -1,12 +1,19 @@
 import { Module } from "@nestjs/common";
-import { AuthModule } from "../auth/auth.module.js";
-import { OrgStructureController } from "./org-structure.controller.js";
-import { OrgStructureService } from "./org-structure.service.js";
+import { CatalogModule } from "./catalog/catalog.module.js";
+import { ManPlacesModule } from "./man-places/man-places.module.js";
+import { ManModule } from "./man/man.module.js";
+import { OrdersModule } from "./orders/orders.module.js";
+import { PlacesModule } from "./places/places.module.js";
+import { UnitsModule } from "./units/units.module.js";
 
 @Module({
-  imports: [AuthModule],
-  controllers: [OrgStructureController],
-  providers: [OrgStructureService],
-  exports: [OrgStructureService],
+  imports: [
+    OrdersModule,
+    CatalogModule,
+    PlacesModule,
+    UnitsModule,
+    ManModule,
+    ManPlacesModule,
+  ],
 })
 export class OrgStructureModule {}

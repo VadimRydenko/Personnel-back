@@ -1,5 +1,8 @@
 import { randomInt } from "node:crypto";
-import { MIN_PASSWORD_LENGTH, isPasswordComplexityOk } from "./password-policy.js";
+import {
+  MIN_PASSWORD_LENGTH,
+  isPasswordComplexityOk,
+} from "./password-policy.js";
 
 const UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const LOWER = "abcdefghijkmnpqrstuvwxyz";
@@ -34,7 +37,12 @@ export function generateStrongPassword(length: number = 20): string {
   const targetLength = Math.max(length, MIN_PASSWORD_LENGTH);
 
   for (let attempt = 0; attempt < 5; attempt++) {
-    const chars: string[] = [pickChar(UPPER), pickChar(LOWER), pickChar(DIGIT), pickChar(SPECIAL)];
+    const chars: string[] = [
+      pickChar(UPPER),
+      pickChar(LOWER),
+      pickChar(DIGIT),
+      pickChar(SPECIAL),
+    ];
 
     while (chars.length < targetLength) {
       chars.push(pickChar(ALL));

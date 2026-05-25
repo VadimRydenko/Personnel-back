@@ -3,7 +3,9 @@ import { AccountsService } from "./accounts.service.js";
 
 @Controller("/api/account-types")
 export class AccountsController {
-  constructor(@Inject(AccountsService) private readonly accounts: AccountsService) {}
+  constructor(
+    @Inject(AccountsService) private readonly accounts: AccountsService,
+  ) {}
 
   @Get("/")
   list() {

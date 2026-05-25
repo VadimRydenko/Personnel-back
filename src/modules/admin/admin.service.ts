@@ -37,7 +37,9 @@ export class AdminService {
 
   private assertNotSelf(actorId: string, targetUserId: string) {
     if (actorId === targetUserId) {
-      throw new BadRequestException("Неможливо застосувати цю дію до власного облікового запису");
+      throw new BadRequestException(
+        "Неможливо застосувати цю дію до власного облікового запису",
+      );
     }
   }
 
@@ -92,7 +94,10 @@ export class AdminService {
         blockReason: u.blockReason,
         mustChangePassword: u.mustChangePassword,
         createdAt: u.createdAt.toISOString(),
-        roles: u.roles.map((r) => ({ id: r.role.id, roleName: r.role.roleName })),
+        roles: u.roles.map((r) => ({
+          id: r.role.id,
+          roleName: r.role.roleName,
+        })),
       })),
       page: input.page,
       pageSize: input.pageSize,
@@ -114,7 +119,11 @@ export class AdminService {
         emailVerified: true,
         createdAt: true,
         updatedAt: true,
-        roles: { select: { role: { select: { id: true, roleName: true, notes: true } } } },
+        roles: {
+          select: {
+            role: { select: { id: true, roleName: true, notes: true } },
+          },
+        },
         groups: {
           select: {
             group: { select: { id: true, name: true, slug: true } },
@@ -139,7 +148,9 @@ export class AdminService {
       blocked: user.blocked,
       blockReason: user.blockReason,
       mustChangePassword: user.mustChangePassword,
-      passwordChangedAt: user.passwordChangedAt ? user.passwordChangedAt.toISOString() : null,
+      passwordChangedAt: user.passwordChangedAt
+        ? user.passwordChangedAt.toISOString()
+        : null,
       emailVerified: user.emailVerified,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
@@ -161,10 +172,17 @@ export class AdminService {
     };
   }
 
-  async patchUser(actorId: string, userId: string, input: PatchManagedUserInput) {
+  async patchUser(
+    actorId: string,
+    userId: string,
+    input: PatchManagedUserInput,
+  ) {
     this.assertNotSelf(actorId, userId);
 
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
 
     if (!user) {
       throw new NotFoundException("Користувача не знайдено");
@@ -175,7 +193,9 @@ export class AdminService {
         throw new BadRequestException("Потрібна хоча б одна роль");
       }
 
-      const roles = await this.prisma.role.findMany({ where: { id: { in: input.roleIds } } });
+      const roles = await this.prisma.role.findMany({
+        where: { id: { in: input.roleIds } },
+      });
 
       if (roles.length !== input.roleIds.length) {
         throw new BadRequestException("Одна або кілька ролей недійсні");
@@ -190,23 +210,25 @@ export class AdminService {
         });
       }
 
-    if (input.blocked !== undefined || input.blockReason !== undefined) {
-      if (input.blocked === undefined) {
-        throw new BadRequestException("Параметр blocked обов'язковий при зміні стану блокування або причини");
+      if (input.blocked !== undefined || input.blockReason !== undefined) {
+        if (input.blocked === undefined) {
+          throw new BadRequestException(
+            "Параметр blocked обов'язковий при зміні стану блокування або причини",
+          );
+        }
+
+        const blocked = input.blocked;
+        const blockReason = blocked ? (input.blockReason ?? null) : null;
+
+        await tx.user.update({
+          where: { id: userId },
+          data: { blocked, blockReason },
+        });
+
+        if (blocked) {
+          await tx.session.deleteMany({ where: { userId } });
+        }
       }
-
-      const blocked = input.blocked;
-      const blockReason = blocked ? (input.blockReason ?? null) : null;
-
-      await tx.user.update({
-        where: { id: userId },
-        data: { blocked, blockReason },
-      });
-
-      if (blocked) {
-        await tx.session.deleteMany({ where: { userId } });
-      }
-    }
     });
 
     return this.getUserById(userId);
@@ -225,7 +247,9 @@ export class AdminService {
     }
 
     if (user.blocked) {
-      throw new ForbiddenException("Неможливо скинути пароль заблокованому користувачу");
+      throw new ForbiddenException(
+        "Неможливо скинути пароль заблокованому користувачу",
+      );
     }
 
     const account = await this.prisma.account.findFirst({
@@ -234,7 +258,9 @@ export class AdminService {
     });
 
     if (!account) {
-      throw new BadRequestException("У користувача немає облікового запису з паролем (credential)");
+      throw new BadRequestException(
+        "У користувача немає облікового запису з паролем (credential)",
+      );
     }
 
     const plainPassword = generateStrongPassword(20);
@@ -276,7 +302,9 @@ export class AdminService {
     const [roles, groups, permissions] = await Promise.all([
       this.prisma.role.findMany({ where: { id: { in: input.roleIds } } }),
       this.prisma.group.findMany({ where: { id: { in: input.groupIds } } }),
-      this.prisma.permission.findMany({ where: { id: { in: input.permissionIds } } }),
+      this.prisma.permission.findMany({
+        where: { id: { in: input.permissionIds } },
+      }),
     ]);
 
     if (roles.length !== input.roleIds.length) {
@@ -295,7 +323,8 @@ export class AdminService {
     const passwordHash = await hashPassword(plainPassword);
     const userId = randomUUID();
     const accountRowId = randomUUID();
-    const displayName = input.name?.trim() || normalizedEmail.split("@")[0] || "User";
+    const displayName =
+      input.name?.trim() || normalizedEmail.split("@")[0] || "User";
 
     await this.prisma.$transaction(async (tx) => {
       await tx.user.create({

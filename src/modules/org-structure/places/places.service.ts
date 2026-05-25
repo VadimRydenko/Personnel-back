@@ -1,0 +1,163 @@
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service.js";
+import { CatalogService } from "../catalog/catalog.service.js";
+import { OrdersService } from "../orders/orders.service.js";
+import { parseDateOnly } from "../shared/date.util.js";
+import type {
+  CreatePlaceInput,
+  EnrichedPlace,
+  PlaceRow,
+} from "./places.types.js";
+
+@Injectable()
+export class PlacesService {
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(OrdersService) private readonly orders: OrdersService,
+    @Inject(CatalogService) private readonly catalog: CatalogService,
+  ) {}
+
+  private enrichPlace(
+    place: PlaceRow,
+    placeTypes: Map<number, { code: number; val: string }>,
+    orders: Map<number, { code: number; orderNo: string; orderDate: Date }>,
+    orgUnits: Map<
+      number,
+      { code: number; name: string; shortName: string | null; city: string }
+    >,
+  ): EnrichedPlace {
+    return {
+      ...place,
+      placeType: placeTypes.get(place.placeTypeCode) ?? null,
+      createOrder: orders.get(place.createOrderCode) ?? null,
+      destroyOrder:
+        place.destroyOrderCode === null
+          ? null
+          : (orders.get(place.destroyOrderCode) ?? null),
+      orgUnit: orgUnits.get(place.orgUnitCode) ?? null,
+    };
+  }
+
+  private async loadOrgUnitsMap(codes: number[]) {
+    const unique = [...new Set(codes)];
+
+    if (unique.length === 0) {
+      return new Map<
+        number,
+        { code: number; name: string; shortName: string | null; city: string }
+      >();
+    }
+
+    const rows = await this.prisma.orgUnit.findMany({
+      where: { code: { in: unique } },
+      select: { code: true, name: true, shortName: true, city: true },
+    });
+
+    return new Map(rows.map((row) => [row.code, row]));
+  }
+
+  async enrichMany(places: PlaceRow[]): Promise<EnrichedPlace[]> {
+    const orderCodes = places.flatMap((p) =>
+      p.destroyOrderCode === null
+        ? [p.createOrderCode]
+        : [p.createOrderCode, p.destroyOrderCode],
+    );
+    const [placeTypes, orders, orgUnits] = await Promise.all([
+      this.catalog.loadPlaceTypesMap(places.map((p) => p.placeTypeCode)),
+      this.orders.loadByCodes(orderCodes),
+      this.loadOrgUnitsMap(places.map((p) => p.orgUnitCode)),
+    ]);
+
+    return places.map((place) =>
+      this.enrichPlace(place, placeTypes, orders, orgUnits),
+    );
+  }
+
+  private async nextSortOrder(orgUnitCode: number) {
+    const agg = await this.prisma.place.aggregate({
+      where: { orgUnitCode },
+      _max: { sortOrder: true },
+    });
+
+    return (agg._max.sortOrder ?? 0) + 1;
+  }
+
+  async listByOrgUnit(orgUnitCode: number, activeOnly = true) {
+    const unit = await this.prisma.orgUnit.findUnique({
+      where: { code: orgUnitCode },
+      select: { code: true },
+    });
+
+    if (!unit) {
+      throw new NotFoundException(
+        `Підрозділ з code=${orgUnitCode} не знайдено`,
+      );
+    }
+
+    const places = await this.prisma.place.findMany({
+      where: {
+        orgUnitCode,
+        ...(activeOnly ? { validTo: null } : {}),
+      },
+      orderBy: { sortOrder: "asc" },
+    });
+
+    return this.enrichMany(places);
+  }
+
+  async listActiveByOrgUnit(orgUnitCode: number) {
+    const places = await this.prisma.place.findMany({
+      where: { orgUnitCode, validTo: null },
+      orderBy: { sortOrder: "asc" },
+    });
+
+    return this.enrichMany(places);
+  }
+
+  async create(
+    orgUnitCode: number,
+    input: CreatePlaceInput,
+  ): Promise<EnrichedPlace> {
+    const unit = await this.prisma.orgUnit.findUnique({
+      where: { code: orgUnitCode },
+    });
+
+    if (!unit) {
+      throw new NotFoundException(
+        `Підрозділ з code=${orgUnitCode} не знайдено`,
+      );
+    }
+
+    if (unit.validTo !== null) {
+      throw new BadRequestException(
+        "Неможливо додати посаду до ліквідованого підрозділу",
+      );
+    }
+
+    await this.catalog.assertDPlaceExists(input.placeTypeCode);
+    const createOrderCode = await this.orders.resolveCreateOrderCode(input);
+    const validFrom = parseDateOnly(input.validFrom);
+    const sortOrder = await this.nextSortOrder(orgUnitCode);
+
+    const created = await this.prisma.place.create({
+      data: {
+        orgUnitCode,
+        placeTypeCode: input.placeTypeCode,
+        sortOrder,
+        validFrom,
+        createOrderCode,
+        posCount: input.posCount ?? 1,
+        isChief: input.isChief ?? false,
+      },
+    });
+
+    const enriched = await this.enrichMany([created]);
+
+    return enriched[0]!;
+  }
+}
