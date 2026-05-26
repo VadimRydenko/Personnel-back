@@ -32,3 +32,24 @@ export type EnrichedPlace = PlaceRow & {
     city: string;
   } | null;
 };
+
+export type PlaceDisplayStatus = "vacant" | "occupied" | "processing" | "reduced";
+
+export const PLACE_STATUS_LABELS: Record<PlaceDisplayStatus, string> = {
+  vacant: "Вакантна",
+  occupied: "Зайнята",
+  processing: "На оформленні",
+  reduced: "Скорочена",
+};
+
+export type PlaceAssignee = {
+  manCode: number;
+  fullName: string;
+};
+
+export type PlaceDetails = EnrichedPlace & {
+  status: PlaceDisplayStatus;
+  statusLabel: string;
+  title: string;
+  assignee: PlaceAssignee | null;
+};

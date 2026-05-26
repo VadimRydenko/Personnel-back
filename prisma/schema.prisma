@@ -26,6 +26,9 @@ model User {
   roles              UserRole[]
   groups             UserGroup[]
   permissions        UserPermission[]
+  /// Прив'язка до картки військовослужбовця (legacy WEB_MEN.MAN → MAN.CODE); опційно
+  manCode            Int?      @unique @map("man_code")
+  man                Man?      @relation(fields: [manCode], references: [code], onDelete: SetNull)
   // --- Better Auth (обов'язкові колонки; у додатку не читаються й не пишуться) ---
   /// За замовчуванням false; верифікація email не увімкнена
   emailVerified      Boolean   @default(false)
@@ -249,37 +252,50 @@ model Place {
   @@map("places")
 }
 
-/// Військовослужбовець (MAN)
+/// Військовослужбовець (MAN) — відповідає таблиці MAN у Firebird staff
 model Man {
-  code                Int       @id @default(autoincrement())
-  lastName            String    @map("lastname")
+  code                Int        @id @default(autoincrement())
+  lastName            String     @map("lastname")
   signature           String
-  firstName           String    @map("firstname")
-  middleName          String    @map("middlename")
-  bornPlace           String    @default("Нема даних") @map("bornplace")
-  birthday            DateTime? @db.Date
-  personalNo          String?   @map("personalno") @db.Char(8)
-  nationalityCode     Int       @map("nationality")
-  sex                 String    @default("Ч") @db.Char(1)
-  idNo                String?   @map("idno") @db.Char(10)
-  fromWhereCode       Int       @map("fromwhere")
-  sciLevel            String?   @map("scilevel")
-  sciRank             String?   @map("scirank")
-  vonDate             DateTime? @map("vondate") @db.Date
-  vlastCalced         DateTime? @map("vlastcalced") @db.Date
-  familyModeCode      Int       @map("familymode")
-  homeAddress         String    @default("Нема даних") @map("homeaddress")
-  validFrom           DateTime? @map("fromdate") @db.Date
-  validTo             DateTime  @default(dbgenerated("'2999-12-31'::date")) @map("todate") @db.Date
-  lastRankCode        Int?      @map("last_rank")
-  lastPlaceCode       Int?      @unique @map("last_place")
-  lastBeginworkCode   Int?      @map("last_beginwork")
-  lastEducationCode   Int?      @map("last_education")
-  lastMaryCode        Int?      @map("last_mary")
+  firstName           String     @map("firstname")
+  middleName          String     @map("middlename")
+  bornPlace           String     @default("Нема даних") @map("bornplace")
+  birthday            DateTime?  @db.Date
+  personalNo          String?    @map("personalno") @db.Char(8)
+  /// FK → DNATIONALITY.CODE (довідник ще не мігровано)
+  nationalityCode     Int        @map("nationality")
+  sex                 String     @default("Ч") @db.Char(1)
+  idNo                String?    @unique @map("idno") @db.Char(10)
+  /// FK → DWHEREFREE.CODE (довідник ще не мігровано)
+  fromWhereCode       Int        @map("fromwhere")
+  sciLevel            String?    @map("scilevel")
+  sciRank             String?    @map("scirank")
+  vonDate             DateTime?  @map("vondate") @db.Date
+  vlastCalced         DateTime?  @map("vlastcalced") @db.Date
+  /// FK → DFAMILYMODE.CODE (довідник ще не мігровано)
+  familyModeCode      Int        @map("familymode")
+  homeAddress         String     @default("Нема даних") @map("homeaddress")
+  validFrom           DateTime?  @map("fromdate") @db.Date
+  validTo             DateTime   @default(dbgenerated("'2999-12-31'::date")) @map("todate") @db.Date
+  lastRankCode        Int?       @map("last_rank")
+  lastPlaceCode       Int?       @unique @map("last_place")
+  lastBeginworkCode   Int?       @map("last_beginwork")
+  lastEducationCode   Int?       @map("last_education")
+  lastMaryCode        Int?       @map("last_mary")
   remarks             String?
   manPlaces           ManPlace[] @relation("ManManPlaces")
   lastPlace           ManPlace?  @relation("ManLastPlace", fields: [lastPlaceCode], references: [code], onDelete: SetNull)
+  user                User?
 
+  @@index([lastName])
+  @@index([firstName])
+  @@index([middleName])
+  @@index([signature])
+  @@index([validFrom])
+  @@index([validTo])
+  @@index([lastRankCode])
+  @@index([lastPlaceCode])
+  @@index([lastBeginworkCode])
   @@index([lastName, firstName, middleName])
   @@index([validFrom, validTo])
   @@map("man")

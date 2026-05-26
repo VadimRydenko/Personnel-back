@@ -8,11 +8,16 @@ import { PrismaService } from "../../prisma/prisma.service.js";
 import { CatalogService } from "../catalog/catalog.service.js";
 import { OrdersService } from "../orders/orders.service.js";
 import { parseDateOnly } from "../shared/date.util.js";
-import type {
-  CreatePlaceInput,
-  EnrichedPlace,
-  PlaceRow,
+import {
+  PLACE_STATUS_LABELS,
+  type CreatePlaceInput,
+  type EnrichedPlace,
+  type PlaceDetails,
+  type PlaceDisplayStatus,
+  type PlaceRow,
 } from "./places.types.js";
+
+const ACTIVE_ASSIGNMENT_VALID_TO = new Date("2999-01-01T00:00:00.000Z");
 
 @Injectable()
 export class PlacesService {
@@ -21,6 +26,16 @@ export class PlacesService {
     @Inject(OrdersService) private readonly orders: OrdersService,
     @Inject(CatalogService) private readonly catalog: CatalogService,
   ) {}
+
+  private getPlaceDisplayStatus(place: PlaceRow): PlaceDisplayStatus {
+    if (place.validTo !== null) return "reduced";
+
+    if (place.manCount <= 0) return "vacant";
+
+    if (place.manCount < place.posCount) return "processing";
+
+    return "occupied";
+  }
 
   private enrichPlace(
     place: PlaceRow,
@@ -85,6 +100,50 @@ export class PlacesService {
     });
 
     return (agg._max.sortOrder ?? 0) + 1;
+  }
+
+  private async loadCurrentAssignee(placeCode: number) {
+    const assignment = await this.prisma.manPlace.findFirst({
+      where: {
+        placeCode,
+        validTo: { gte: ACTIVE_ASSIGNMENT_VALID_TO },
+      },
+      orderBy: { validFrom: "desc" },
+      select: { manCode: true, fullName: true },
+    });
+
+    if (!assignment) return null;
+
+    return {
+      manCode: assignment.manCode,
+      fullName: assignment.fullName,
+    };
+  }
+
+  async getOne(orgUnitCode: number, placeCode: number): Promise<PlaceDetails> {
+    const place = await this.prisma.place.findFirst({
+      where: { code: placeCode, orgUnitCode },
+    });
+
+    if (!place) {
+      throw new NotFoundException(
+        `Посаду з code=${placeCode} у підрозділі ${orgUnitCode} не знайдено`,
+      );
+    }
+
+    const enrichedList = await this.enrichMany([place]);
+    const enriched = enrichedList[0]!;
+
+    const status = this.getPlaceDisplayStatus(place);
+    const assignee = await this.loadCurrentAssignee(placeCode);
+
+    return {
+      ...enriched,
+      status,
+      statusLabel: PLACE_STATUS_LABELS[status],
+      title: enriched.placeType?.val?.trim() || `Посада #${placeCode}`,
+      assignee,
+    };
   }
 
   async listByOrgUnit(orgUnitCode: number, activeOnly = true) {

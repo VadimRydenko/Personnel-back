@@ -111,6 +111,7 @@ export class AdminService {
       select: {
         id: true,
         email: true,
+        manCode: true,
         name: true,
         blocked: true,
         blockReason: true,
@@ -144,6 +145,7 @@ export class AdminService {
     return {
       id: user.id,
       email: user.email,
+      manCode: user.manCode,
       name: user.name,
       blocked: user.blocked,
       blockReason: user.blockReason,

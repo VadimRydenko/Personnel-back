@@ -19,6 +19,7 @@ const DateOnlySchema = z
   .transform((s) => new Date(`${s}T00:00:00.000Z`));
 
 const OrgUnitCodeParamSchema = z.coerce.number().int().positive();
+const PlaceCodeParamSchema = z.coerce.number().int().positive();
 
 const CreatePlaceBodySchema = z
   .object({
@@ -43,6 +44,27 @@ const CreatePlaceBodySchema = z
 @UseGuards(AuthenticatedGuard)
 export class PlacesController {
   constructor(@Inject(PlacesService) private readonly places: PlacesService) {}
+
+  @Get("/:placeCode")
+  async getPlace(
+    @Param("code") codeParam: string,
+    @Param("placeCode") placeCodeParam: string,
+    @Res() res: Response,
+  ) {
+    const parsedCode = OrgUnitCodeParamSchema.safeParse(codeParam);
+    const parsedPlaceCode = PlaceCodeParamSchema.safeParse(placeCodeParam);
+
+    if (!parsedCode.success || !parsedPlaceCode.success) {
+      return res.status(400).json({ message: "Invalid unit or place code" });
+    }
+
+    const place = await this.places.getOne(
+      parsedCode.data,
+      parsedPlaceCode.data,
+    );
+
+    return res.status(200).json(place);
+  }
 
   @Get()
   async listPlaces(@Param("code") codeParam: string, @Res() res: Response) {
