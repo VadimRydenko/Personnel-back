@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service.js";
 import { CatalogService } from "../catalog/catalog.service.js";
+import { ManPlacesService } from "../man-places/man-places.service.js";
 import { OrdersService } from "../orders/orders.service.js";
 import { parseDateOnly } from "../shared/date.util.js";
 import {
@@ -15,9 +16,8 @@ import {
   type PlaceDetails,
   type PlaceDisplayStatus,
   type PlaceRow,
+  type PlaceAssignee,
 } from "./places.types.js";
-
-const ACTIVE_ASSIGNMENT_VALID_TO = new Date("2999-01-01T00:00:00.000Z");
 
 @Injectable()
 export class PlacesService {
@@ -25,14 +25,18 @@ export class PlacesService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(OrdersService) private readonly orders: OrdersService,
     @Inject(CatalogService) private readonly catalog: CatalogService,
+    @Inject(ManPlacesService) private readonly manPlaces: ManPlacesService,
   ) {}
 
-  private getPlaceDisplayStatus(place: PlaceRow): PlaceDisplayStatus {
+  private getPlaceDisplayStatus(
+    place: PlaceRow,
+    activeAssigneeCount: number,
+  ): PlaceDisplayStatus {
     if (place.validTo !== null) return "reduced";
 
-    if (place.manCount <= 0) return "vacant";
+    if (activeAssigneeCount <= 0) return "vacant";
 
-    if (place.manCount < place.posCount) return "processing";
+    if (activeAssigneeCount < place.posCount) return "processing";
 
     return "occupied";
   }
@@ -45,6 +49,7 @@ export class PlacesService {
       number,
       { code: number; name: string; shortName: string | null; city: string }
     >,
+    assigneesByPlace: Map<number, PlaceAssignee[]>,
   ): EnrichedPlace {
     return {
       ...place,
@@ -55,6 +60,7 @@ export class PlacesService {
           ? null
           : (orders.get(place.destroyOrderCode) ?? null),
       orgUnit: orgUnits.get(place.orgUnitCode) ?? null,
+      assignees: assigneesByPlace.get(place.code) ?? [],
     };
   }
 
@@ -82,14 +88,15 @@ export class PlacesService {
         ? [p.createOrderCode]
         : [p.createOrderCode, p.destroyOrderCode],
     );
-    const [placeTypes, orders, orgUnits] = await Promise.all([
+    const [placeTypes, orders, orgUnits, assigneesByPlace] = await Promise.all([
       this.catalog.loadPlaceTypesMap(places.map((p) => p.placeTypeCode)),
       this.orders.loadByCodes(orderCodes),
       this.loadOrgUnitsMap(places.map((p) => p.orgUnitCode)),
+      this.manPlaces.loadActiveAssigneesByPlaceCodes(places.map((p) => p.code)),
     ]);
 
     return places.map((place) =>
-      this.enrichPlace(place, placeTypes, orders, orgUnits),
+      this.enrichPlace(place, placeTypes, orders, orgUnits, assigneesByPlace),
     );
   }
 
@@ -100,24 +107,6 @@ export class PlacesService {
     });
 
     return (agg._max.sortOrder ?? 0) + 1;
-  }
-
-  private async loadCurrentAssignee(placeCode: number) {
-    const assignment = await this.prisma.manPlace.findFirst({
-      where: {
-        placeCode,
-        validTo: { gte: ACTIVE_ASSIGNMENT_VALID_TO },
-      },
-      orderBy: { validFrom: "desc" },
-      select: { manCode: true, fullName: true },
-    });
-
-    if (!assignment) return null;
-
-    return {
-      manCode: assignment.manCode,
-      fullName: assignment.fullName,
-    };
   }
 
   async getOne(orgUnitCode: number, placeCode: number): Promise<PlaceDetails> {
@@ -134,8 +123,11 @@ export class PlacesService {
     const enrichedList = await this.enrichMany([place]);
     const enriched = enrichedList[0]!;
 
-    const status = this.getPlaceDisplayStatus(place);
-    const assignee = await this.loadCurrentAssignee(placeCode);
+    const status = this.getPlaceDisplayStatus(
+      place,
+      enriched.assignees.length,
+    );
+    const assignee = enriched.assignees[0] ?? null;
 
     return {
       ...enriched,

@@ -21,6 +21,11 @@ export type CreatePlaceInput = CreateOrderInput & {
   isChief?: boolean | undefined;
 };
 
+export type PlaceAssignee = {
+  manCode: number;
+  fullName: string;
+};
+
 export type EnrichedPlace = PlaceRow & {
   placeType: { code: number; val: string } | null;
   createOrder: { code: number; orderNo: string; orderDate: Date } | null;
@@ -31,6 +36,8 @@ export type EnrichedPlace = PlaceRow & {
     shortName: string | null;
     city: string;
   } | null;
+  /** Поточні призначення з MANPLACES (активні, TODATE = 2999-12-31) */
+  assignees: PlaceAssignee[];
 };
 
 export type PlaceDisplayStatus = "vacant" | "occupied" | "processing" | "reduced";
@@ -40,11 +47,6 @@ export const PLACE_STATUS_LABELS: Record<PlaceDisplayStatus, string> = {
   occupied: "Зайнята",
   processing: "На оформленні",
   reduced: "Скорочена",
-};
-
-export type PlaceAssignee = {
-  manCode: number;
-  fullName: string;
 };
 
 export type PlaceDetails = EnrichedPlace & {

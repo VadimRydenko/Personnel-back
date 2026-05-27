@@ -301,7 +301,7 @@ model Man {
   @@map("man")
 }
 
-/// Призначення на посаду (MANPLACES)
+/// Призначення на посаду (MANPLACES) — звʼязок many-to-many між Man і Place
 model ManPlace {
   code                   Int            @id @default(autoincrement())
   manCode                Int            @map("man")

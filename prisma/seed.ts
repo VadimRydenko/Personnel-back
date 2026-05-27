@@ -182,6 +182,88 @@ async function main() {
     update: {},
     create: { val: "Командир роти" },
   });
+
+  /** Мінімальні коди довідників (таблиці DNATIONALITY / DWHEREFREE / DFAMILYMODE ще не в PG) */
+  const catalogCode = 1;
+
+  const manSeeds = [
+    {
+      lastName: "Коваленко",
+      firstName: "Олексій",
+      middleName: "Володимирович",
+      signature: "Коваленко О.В.",
+      idNo: "1000000001",
+      personalNo: "12345678",
+      birthday: new Date("1990-05-15T00:00:00.000Z"),
+    },
+    {
+      lastName: "Шевченко",
+      firstName: "Андрій",
+      middleName: "Петрович",
+      signature: "Шевченко А.П.",
+      idNo: "1000000002",
+      personalNo: "23456789",
+      birthday: new Date("1988-11-03T00:00:00.000Z"),
+    },
+    {
+      lastName: "Мельник",
+      firstName: "Ірина",
+      middleName: "Сергіївна",
+      signature: "Мельник І.С.",
+      idNo: "1000000003",
+      personalNo: "34567890",
+      birthday: new Date("1992-02-20T00:00:00.000Z"),
+    },
+    {
+      lastName: "Бондаренко",
+      firstName: "Дмитро",
+      middleName: "Іванович",
+      signature: "Бондаренко Д.І.",
+      idNo: "1000000004",
+      personalNo: "45678901",
+      birthday: new Date("1985-07-08T00:00:00.000Z"),
+    },
+    {
+      lastName: "Ткаченко",
+      firstName: "Наталія",
+      middleName: "Олегівна",
+      signature: "Ткаченко Н.О.",
+      idNo: "1000000005",
+      personalNo: "56789012",
+      birthday: new Date("1994-12-01T00:00:00.000Z"),
+    },
+  ] as const;
+
+  for (const man of manSeeds) {
+    await prisma.man.upsert({
+      where: { idNo: man.idNo },
+      update: {
+        lastName: man.lastName,
+        firstName: man.firstName,
+        middleName: man.middleName,
+        signature: man.signature,
+        personalNo: man.personalNo,
+        birthday: man.birthday,
+      },
+      create: {
+        lastName: man.lastName,
+        firstName: man.firstName,
+        middleName: man.middleName,
+        signature: man.signature,
+        idNo: man.idNo,
+        personalNo: man.personalNo,
+        birthday: man.birthday,
+        nationalityCode: catalogCode,
+        fromWhereCode: catalogCode,
+        familyModeCode: catalogCode,
+        validFrom: new Date("2020-01-01T00:00:00.000Z"),
+      },
+    });
+  }
+
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"man"', 'code'), GREATEST((SELECT COALESCE(MAX("code"), 1) FROM "man"), 1))`,
+  );
 }
 
 main()
