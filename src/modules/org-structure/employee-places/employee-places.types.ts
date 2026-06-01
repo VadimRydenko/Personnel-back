@@ -1,8 +1,8 @@
 import type { CreateOrderInput } from "../orders/orders.types.js";
 
-export type ManPlaceRow = {
+export type EmployeePlaceRow = {
   code: number;
-  manCode: number;
+  employeeCode: number;
   placeCode: number | null;
   sPlace: string;
   orderCode: number;
@@ -14,20 +14,20 @@ export type ManPlaceRow = {
   byReasonOfUnitRename: string;
 };
 
-export type ManPlaceAssignee = {
-  manCode: number;
+export type EmployeePlaceAssignee = {
+  employeeCode: number;
   fullName: string;
 };
 
-export type AssignManToPlaceInput = CreateOrderInput & {
-  manCode: number;
+export type AssignEmployeeToPlaceInput = CreateOrderInput & {
+  employeeCode: number;
   validFrom: Date;
   sPlace?: string | undefined;
   koef?: number | undefined;
   percentRate?: number | undefined;
 };
 
-export type UnassignManFromPlaceInput = CreateOrderInput & {
-  manCode: number;
+export type UnassignEmployeeFromPlaceInput = CreateOrderInput & {
+  employeeCode: number;
   validTo: Date;
 };

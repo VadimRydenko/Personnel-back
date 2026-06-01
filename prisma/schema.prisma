@@ -26,9 +26,9 @@ model User {
   roles              UserRole[]
   groups             UserGroup[]
   permissions        UserPermission[]
-  /// Прив'язка до картки військовослужбовця (legacy WEB_MEN.MAN → MAN.CODE); опційно
-  manCode            Int?      @unique @map("man_code")
-  man                Man?      @relation(fields: [manCode], references: [code], onDelete: SetNull)
+  /// Прив'язка до картки співробітника (legacy WEB_MEN.MAN → MAN.CODE); опційно
+  employeeCode       Int?      @unique @map("employee_code")
+  employee           Employee? @relation(fields: [employeeCode], references: [code], onDelete: SetNull)
   // --- Better Auth (обов'язкові колонки; у додатку не читаються й не пишуться) ---
   /// За замовчуванням false; верифікація email не увімкнена
   emailVerified      Boolean   @default(false)
@@ -182,7 +182,7 @@ model PersonnelOrder {
   orderWhose Int        @map("order_whose")
   orderNo    String     @map("order_no")
   orderDate  DateTime   @map("order_date")
-  manPlaces  ManPlace[]
+  employeePlaces  EmployeePlace[]
 
   @@index([orderWhose])
   @@index([orderDate])
@@ -244,7 +244,7 @@ model Place {
   validTo          DateTime?  @map("destroy_date") @db.Date
   createOrderCode  Int        @map("create_order")
   destroyOrderCode Int?       @map("destroy_order")
-  manPlaces        ManPlace[]
+  employeePlaces        EmployeePlace[]
 
   @@index([orgUnitCode])
   @@index([orgUnitCode, sortOrder])
@@ -252,8 +252,8 @@ model Place {
   @@map("places")
 }
 
-/// Військовослужбовець (MAN) — відповідає таблиці MAN у Firebird staff
-model Man {
+/// Співробітник (EMPLOYEE) — відповідає таблиці MAN у Firebird staff
+model Employee {
   code                Int        @id @default(autoincrement())
   lastName            String     @map("lastname")
   signature           String
@@ -283,8 +283,8 @@ model Man {
   lastEducationCode   Int?       @map("last_education")
   lastMaryCode        Int?       @map("last_mary")
   remarks             String?
-  manPlaces           ManPlace[] @relation("ManManPlaces")
-  lastPlace           ManPlace?  @relation("ManLastPlace", fields: [lastPlaceCode], references: [code], onDelete: SetNull)
+  employeePlaces           EmployeePlace[] @relation("EmployeeEmployeePlaces")
+  lastPlace           EmployeePlace?  @relation("EmployeeLastPlace", fields: [lastPlaceCode], references: [code], onDelete: SetNull)
   user                User?
 
   @@index([lastName])
@@ -298,30 +298,30 @@ model Man {
   @@index([lastBeginworkCode])
   @@index([lastName, firstName, middleName])
   @@index([validFrom, validTo])
-  @@map("man")
+  @@map("employee")
 }
 
-/// Призначення на посаду (MANPLACES) — звʼязок many-to-many між Man і Place
-model ManPlace {
-  code                   Int            @id @default(autoincrement())
-  manCode                Int            @map("man")
-  man                    Man            @relation("ManManPlaces", fields: [manCode], references: [code], onDelete: Restrict)
-  placeCode              Int?           @map("place")
-  place                  Place?         @relation(fields: [placeCode], references: [code], onDelete: Restrict)
-  sPlace                 String         @default("") @map("splace")
-  orderCode              Int            @map("whatorder")
-  order                  PersonnelOrder @relation(fields: [orderCode], references: [code], onDelete: Restrict)
-  validFrom              DateTime       @map("fromdate") @db.Date
-  validTo                DateTime       @default(dbgenerated("'2999-12-31'::date")) @map("todate") @db.Date
-  koef                   Float          @default(1)
-  percentRate            Float          @default(1) @map("percentrate")
-  fullName               String         @map("fullname")
-  byReasonOfUnitRename   String         @default("F") @map("byreasonof_unitrename") @db.Char(1)
-  lastPlaceForMan        Man?           @relation("ManLastPlace")
+/// Призначення на посаду — звʼязок many-to-many між Employee і Place
+model EmployeePlace {
+  code                     Int            @id @default(autoincrement())
+  employeeCode             Int            @map("employee")
+  employee                 Employee       @relation("EmployeeEmployeePlaces", fields: [employeeCode], references: [code], onDelete: Restrict)
+  placeCode                Int?           @map("place")
+  place                    Place?         @relation(fields: [placeCode], references: [code], onDelete: Restrict)
+  sPlace                   String         @default("") @map("splace")
+  orderCode                Int            @map("whatorder")
+  order                    PersonnelOrder @relation(fields: [orderCode], references: [code], onDelete: Restrict)
+  validFrom                DateTime       @map("fromdate") @db.Date
+  validTo                  DateTime       @default(dbgenerated("'2999-12-31'::date")) @map("todate") @db.Date
+  koef                     Float          @default(1)
+  percentRate              Float          @default(1) @map("percentrate")
+  fullName                 String         @map("fullname")
+  byReasonOfUnitRename     String         @default("F") @map("byreasonof_unitrename") @db.Char(1)
+  lastPlaceForEmployee     Employee?      @relation("EmployeeLastPlace")
 
-  @@index([manCode])
+  @@index([employeeCode])
   @@index([placeCode])
   @@index([validFrom])
   @@index([validTo])
-  @@map("manplaces")
+  @@map("employee_places")
 }

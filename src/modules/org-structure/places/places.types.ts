@@ -22,7 +22,7 @@ export type CreatePlaceInput = CreateOrderInput & {
 };
 
 export type PlaceAssignee = {
-  manCode: number;
+  employeeCode: number;
   fullName: string;
 };
 

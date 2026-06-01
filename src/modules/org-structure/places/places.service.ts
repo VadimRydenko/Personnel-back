@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service.js";
 import { CatalogService } from "../catalog/catalog.service.js";
-import { ManPlacesService } from "../man-places/man-places.service.js";
+import { EmployeePlacesService } from "../employee-places/employee-places.service.js";
 import { OrdersService } from "../orders/orders.service.js";
 import { parseDateOnly } from "../shared/date.util.js";
 import {
@@ -25,7 +25,7 @@ export class PlacesService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(OrdersService) private readonly orders: OrdersService,
     @Inject(CatalogService) private readonly catalog: CatalogService,
-    @Inject(ManPlacesService) private readonly manPlaces: ManPlacesService,
+    @Inject(EmployeePlacesService) private readonly employeePlaces: EmployeePlacesService,
   ) {}
 
   private getPlaceDisplayStatus(
@@ -92,7 +92,7 @@ export class PlacesService {
       this.catalog.loadPlaceTypesMap(places.map((p) => p.placeTypeCode)),
       this.orders.loadByCodes(orderCodes),
       this.loadOrgUnitsMap(places.map((p) => p.orgUnitCode)),
-      this.manPlaces.loadActiveAssigneesByPlaceCodes(places.map((p) => p.code)),
+      this.employeePlaces.loadActiveAssigneesByPlaceCodes(places.map((p) => p.code)),
     ]);
 
     return places.map((place) =>

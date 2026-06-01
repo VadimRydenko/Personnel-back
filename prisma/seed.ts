@@ -186,7 +186,7 @@ async function main() {
   /** Мінімальні коди довідників (таблиці DNATIONALITY / DWHEREFREE / DFAMILYMODE ще не в PG) */
   const catalogCode = 1;
 
-  const manSeeds = [
+  const employeeSeeds = [
     {
       lastName: "Коваленко",
       firstName: "Олексій",
@@ -234,25 +234,25 @@ async function main() {
     },
   ] as const;
 
-  for (const man of manSeeds) {
-    await prisma.man.upsert({
-      where: { idNo: man.idNo },
+  for (const employee of employeeSeeds) {
+    await prisma.employee.upsert({
+      where: { idNo: employee.idNo },
       update: {
-        lastName: man.lastName,
-        firstName: man.firstName,
-        middleName: man.middleName,
-        signature: man.signature,
-        personalNo: man.personalNo,
-        birthday: man.birthday,
+        lastName: employee.lastName,
+        firstName: employee.firstName,
+        middleName: employee.middleName,
+        signature: employee.signature,
+        personalNo: employee.personalNo,
+        birthday: employee.birthday,
       },
       create: {
-        lastName: man.lastName,
-        firstName: man.firstName,
-        middleName: man.middleName,
-        signature: man.signature,
-        idNo: man.idNo,
-        personalNo: man.personalNo,
-        birthday: man.birthday,
+        lastName: employee.lastName,
+        firstName: employee.firstName,
+        middleName: employee.middleName,
+        signature: employee.signature,
+        idNo: employee.idNo,
+        personalNo: employee.personalNo,
+        birthday: employee.birthday,
         nationalityCode: catalogCode,
         fromWhereCode: catalogCode,
         familyModeCode: catalogCode,
@@ -262,7 +262,7 @@ async function main() {
   }
 
   await prisma.$executeRawUnsafe(
-    `SELECT setval(pg_get_serial_sequence('"man"', 'code'), GREATEST((SELECT COALESCE(MAX("code"), 1) FROM "man"), 1))`,
+    `SELECT setval(pg_get_serial_sequence('"employee"', 'code'), GREATEST((SELECT COALESCE(MAX("code"), 1) FROM "employee"), 1))`,
   );
 }
 

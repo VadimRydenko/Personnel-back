@@ -42,7 +42,7 @@ export class MeService {
     return {
       id: user.id,
       email: user.email,
-      manCode: user.manCode,
+      employeeCode: user.employeeCode,
       name: user.name,
       mustChangePassword: user.mustChangePassword,
       blocked: user.blocked,

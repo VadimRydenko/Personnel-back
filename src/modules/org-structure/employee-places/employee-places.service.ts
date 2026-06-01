@@ -10,18 +10,18 @@ import { PrismaService } from "../../prisma/prisma.service.js";
 import { CatalogService } from "../catalog/catalog.service.js";
 import { OrdersService } from "../orders/orders.service.js";
 import { parseDateOnly } from "../shared/date.util.js";
-import { ACTIVE_MAN_PLACE_VALID_TO } from "./man-places.constants.js";
+import { ACTIVE_EMPLOYEE_PLACE_VALID_TO } from "./employee-places.constants.js";
 import type {
-  AssignManToPlaceInput,
-  ManPlaceAssignee,
-  ManPlaceRow,
-  UnassignManFromPlaceInput,
-} from "./man-places.types.js";
+  AssignEmployeeToPlaceInput,
+  EmployeePlaceAssignee,
+  EmployeePlaceRow,
+  UnassignEmployeeFromPlaceInput,
+} from "./employee-places.types.js";
 
 type Tx = Prisma.TransactionClient;
 
 @Injectable()
-export class ManPlacesService {
+export class EmployeePlacesService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(OrdersService) private readonly orders: OrdersService,
@@ -29,36 +29,36 @@ export class ManPlacesService {
   ) {}
 
   private isActiveValidTo(validTo: Date) {
-    return validTo >= ACTIVE_MAN_PLACE_VALID_TO;
+    return validTo >= ACTIVE_EMPLOYEE_PLACE_VALID_TO;
   }
 
   /** Активні призначення для кількох посад (для PlacesService) */
   async loadActiveAssigneesByPlaceCodes(
     placeCodes: number[],
-  ): Promise<Map<number, ManPlaceAssignee[]>> {
+  ): Promise<Map<number, EmployeePlaceAssignee[]>> {
     const unique = [...new Set(placeCodes)];
 
     if (unique.length === 0) {
       return new Map();
     }
 
-    const rows = await this.prisma.manPlace.findMany({
+    const rows = await this.prisma.employeePlace.findMany({
       where: {
         placeCode: { in: unique },
-        validTo: { gte: ACTIVE_MAN_PLACE_VALID_TO },
+        validTo: { gte: ACTIVE_EMPLOYEE_PLACE_VALID_TO },
       },
       orderBy: { validFrom: "desc" },
-      select: { placeCode: true, manCode: true, fullName: true },
+      select: { placeCode: true, employeeCode: true, fullName: true },
     });
 
-    const map = new Map<number, ManPlaceAssignee[]>();
+    const map = new Map<number, EmployeePlaceAssignee[]>();
 
     for (const row of rows) {
       if (row.placeCode === null) continue;
 
       const list = map.get(row.placeCode) ?? [];
 
-      list.push({ manCode: row.manCode, fullName: row.fullName });
+      list.push({ employeeCode: row.employeeCode, fullName: row.fullName });
       map.set(row.placeCode, list);
     }
 
@@ -85,7 +85,7 @@ export class ManPlacesService {
   }
 
   private async buildAssignmentFullName(
-    man: {
+    employee: {
       lastName: string;
       firstName: string;
       middleName: string;
@@ -113,7 +113,7 @@ export class ManPlacesService {
       return `${trimmedSPlace} за рахунок посади ${positionLine}`;
     }
 
-    const fio = [man.lastName, man.firstName, man.middleName]
+    const fio = [employee.lastName, employee.firstName, employee.middleName]
       .map((p) => p.trim())
       .filter(Boolean)
       .join(" ");
@@ -121,11 +121,11 @@ export class ManPlacesService {
     return fio.length > 0 ? `${fio}, ${positionLine}` : positionLine;
   }
 
-  private async syncPlaceManCount(tx: Tx, placeCode: number) {
-    const count = await tx.manPlace.count({
+  private async syncPlaceEmployeeCount(tx: Tx, placeCode: number) {
+    const count = await tx.employeePlace.count({
       where: {
         placeCode,
-        validTo: { gte: ACTIVE_MAN_PLACE_VALID_TO },
+        validTo: { gte: ACTIVE_EMPLOYEE_PLACE_VALID_TO },
       },
     });
 
@@ -135,15 +135,15 @@ export class ManPlacesService {
     });
   }
 
-  private async syncManLastPlace(tx: Tx, manCode: number) {
-    const latest = await tx.manPlace.findFirst({
-      where: { manCode },
+  private async syncEmployeeLastPlace(tx: Tx, employeeCode: number) {
+    const latest = await tx.employeePlace.findFirst({
+      where: { employeeCode },
       orderBy: [{ validTo: "desc" }, { validFrom: "desc" }, { code: "desc" }],
       select: { code: true, validTo: true },
     });
 
-    await tx.man.update({
-      where: { code: manCode },
+    await tx.employee.update({
+      where: { code: employeeCode },
       data: {
         lastPlaceCode:
           latest && this.isActiveValidTo(latest.validTo) ? latest.code : null,
@@ -151,16 +151,15 @@ export class ManPlacesService {
     });
   }
 
-  /** Призначення військовослужбовця на посаду (MANPLACES INSERT) */
   async assignToPlace(
     orgUnitCode: number,
     placeCode: number,
-    input: AssignManToPlaceInput,
-  ): Promise<ManPlaceRow> {
+    input: AssignEmployeeToPlaceInput,
+  ): Promise<EmployeePlaceRow> {
     await this.assertPlaceInOrgUnit(orgUnitCode, placeCode);
 
-    const [man, place] = await Promise.all([
-      this.prisma.man.findUnique({ where: { code: input.manCode } }),
+    const [employee, place] = await Promise.all([
+      this.prisma.employee.findUnique({ where: { code: input.employeeCode } }),
       this.prisma.place.findUnique({
         where: { code: placeCode },
         select: {
@@ -173,9 +172,9 @@ export class ManPlacesService {
       }),
     ]);
 
-    if (!man) {
+    if (!employee) {
       throw new NotFoundException(
-        `Військовослужбовця з code=${input.manCode} не знайдено`,
+        `Співробітника з code=${input.employeeCode} не знайдено`,
       );
     }
 
@@ -198,24 +197,22 @@ export class ManPlacesService {
       throw new BadRequestException("percentRate має бути не більше 1");
     }
 
-    const existingOnPlace = await this.prisma.manPlace.findFirst({
+    const existingOnPlace = await this.prisma.employeePlace.findFirst({
       where: {
-        manCode: input.manCode,
+        employeeCode: input.employeeCode,
         placeCode,
-        validTo: { gte: ACTIVE_MAN_PLACE_VALID_TO },
+        validTo: { gte: ACTIVE_EMPLOYEE_PLACE_VALID_TO },
       },
     });
 
     if (existingOnPlace) {
-      throw new ConflictException(
-        "Військовослужбовець уже призначений на цю посаду",
-      );
+      throw new ConflictException("Співробітник вже призначений на цю посаду");
     }
 
-    const activeOnPlaceCount = await this.prisma.manPlace.count({
+    const activeOnPlaceCount = await this.prisma.employeePlace.count({
       where: {
         placeCode,
-        validTo: { gte: ACTIVE_MAN_PLACE_VALID_TO },
+        validTo: { gte: ACTIVE_EMPLOYEE_PLACE_VALID_TO },
       },
     });
 
@@ -227,7 +224,7 @@ export class ManPlacesService {
 
     const sPlace = input.sPlace?.trim() ?? "";
     const fullName = await this.buildAssignmentFullName(
-      man,
+      employee,
       placeCode,
       orgUnitCode,
       place.placeTypeCode,
@@ -235,58 +232,57 @@ export class ManPlacesService {
     );
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.manPlace.updateMany({
+      await tx.employeePlace.updateMany({
         where: {
-          manCode: input.manCode,
-          validTo: { gte: ACTIVE_MAN_PLACE_VALID_TO },
+          employeeCode: input.employeeCode,
+          validTo: { gte: ACTIVE_EMPLOYEE_PLACE_VALID_TO },
         },
         data: { validTo: validFrom },
       });
 
-      const created = await tx.manPlace.create({
+      const created = await tx.employeePlace.create({
         data: {
-          manCode: input.manCode,
+          employeeCode: input.employeeCode,
           placeCode,
           sPlace,
           orderCode,
           validFrom,
-          validTo: ACTIVE_MAN_PLACE_VALID_TO,
+          validTo: ACTIVE_EMPLOYEE_PLACE_VALID_TO,
           koef,
           percentRate,
           fullName,
         },
       });
 
-      await this.syncPlaceManCount(tx, placeCode);
-      await this.syncManLastPlace(tx, input.manCode);
+      await this.syncPlaceEmployeeCount(tx, placeCode);
+      await this.syncEmployeeLastPlace(tx, input.employeeCode);
 
       return created;
     });
   }
 
-  /** Зняття з посади (закриття MANPLACES: TODATE < 2999-12-31) */
   async unassignFromPlace(
     orgUnitCode: number,
     placeCode: number,
-    input: UnassignManFromPlaceInput,
-  ): Promise<ManPlaceRow> {
+    input: UnassignEmployeeFromPlaceInput,
+  ): Promise<EmployeePlaceRow> {
     await this.assertPlaceInOrgUnit(orgUnitCode, placeCode);
 
     const validTo = parseDateOnly(input.validTo);
 
     await this.orders.resolveCreateOrderCode(input);
 
-    const active = await this.prisma.manPlace.findFirst({
+    const active = await this.prisma.employeePlace.findFirst({
       where: {
-        manCode: input.manCode,
+        employeeCode: input.employeeCode,
         placeCode,
-        validTo: { gte: ACTIVE_MAN_PLACE_VALID_TO },
+        validTo: { gte: ACTIVE_EMPLOYEE_PLACE_VALID_TO },
       },
     });
 
     if (!active) {
       throw new NotFoundException(
-        "Активне призначення цього військовослужбовця на посаду не знайдено",
+        "Активне призначення цього співробітника на посаду не знайдено",
       );
     }
 
@@ -297,13 +293,13 @@ export class ManPlacesService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.manPlace.update({
+      const updated = await tx.employeePlace.update({
         where: { code: active.code },
         data: { validTo },
       });
 
-      await this.syncPlaceManCount(tx, placeCode);
-      await this.syncManLastPlace(tx, input.manCode);
+      await this.syncPlaceEmployeeCount(tx, placeCode);
+      await this.syncEmployeeLastPlace(tx, input.employeeCode);
 
       return updated;
     });

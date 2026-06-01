@@ -10,7 +10,7 @@ import {
 import type { Response } from "express";
 import { z } from "zod";
 import { AuthenticatedGuard } from "../../auth/guards/authenticated.guard.js";
-import { ManPlacesService } from "./man-places.service.js";
+import { EmployeePlacesService } from "./employee-places.service.js";
 
 const DateOnlySchema = z
   .string()
@@ -36,7 +36,7 @@ const OrderPartSchema = z
 
 const AssignBodySchema = OrderPartSchema.and(
   z.object({
-    manCode: z.number().int().positive(),
+    employeeCode: z.number().int().positive(),
     validFrom: DateOnlySchema,
     sPlace: z.string().max(100).optional(),
     koef: z.number().min(1).optional(),
@@ -46,16 +46,17 @@ const AssignBodySchema = OrderPartSchema.and(
 
 const UnassignBodySchema = OrderPartSchema.and(
   z.object({
-    manCode: z.number().int().positive(),
+    employeeCode: z.number().int().positive(),
     validTo: DateOnlySchema,
   }),
 );
 
-@Controller("/api/org-units/:code/places/:placeCode/man-places")
+@Controller("/api/org-units/:code/places/:placeCode/employee-places")
 @UseGuards(AuthenticatedGuard)
-export class ManPlacesController {
+export class EmployeePlacesController {
   constructor(
-    @Inject(ManPlacesService) private readonly manPlaces: ManPlacesService,
+    @Inject(EmployeePlacesService)
+    private readonly employeePlaces: EmployeePlacesService,
   ) {}
 
   @Post()
@@ -76,11 +77,11 @@ export class ManPlacesController {
       });
     }
 
-    const row = await this.manPlaces.assignToPlace(
+    const row = await this.employeePlaces.assignToPlace(
       parsedCode.data,
       parsedPlaceCode.data,
       {
-        manCode: parsed.data.manCode,
+        employeeCode: parsed.data.employeeCode,
         validFrom: parsed.data.validFrom,
         sPlace: parsed.data.sPlace,
         koef: parsed.data.koef,
@@ -111,11 +112,11 @@ export class ManPlacesController {
       });
     }
 
-    const row = await this.manPlaces.unassignFromPlace(
+    const row = await this.employeePlaces.unassignFromPlace(
       parsedCode.data,
       parsedPlaceCode.data,
       {
-        manCode: parsed.data.manCode,
+        employeeCode: parsed.data.employeeCode,
         validTo: parsed.data.validTo,
         createOrderCode: parsed.data.orderCode,
         createOrder: parsed.data.createOrder,
