@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "units" ADD COLUMN IF NOT EXISTS "city" TEXT NOT NULL DEFAULT '';
