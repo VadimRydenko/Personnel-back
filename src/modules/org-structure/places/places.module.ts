@@ -5,10 +5,11 @@ import { EmployeePlacesModule } from "../employee-places/employee-places.module.
 import { OrdersModule } from "../orders/orders.module.js";
 import { PlacesController } from "./places.controller.js";
 import { PlacesService } from "./places.service.js";
+import { VacantPlacesController } from "./vacant-places.controller.js";
 
 @Module({
   imports: [AuthModule, OrdersModule, CatalogModule, EmployeePlacesModule],
-  controllers: [PlacesController],
+  controllers: [PlacesController, VacantPlacesController],
   providers: [PlacesService],
   exports: [PlacesService],
 })

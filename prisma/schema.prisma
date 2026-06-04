@@ -283,8 +283,9 @@ model Employee {
   lastEducationCode   Int?       @map("last_education")
   lastMaryCode        Int?       @map("last_mary")
   remarks             String?
-  employeePlaces           EmployeePlace[] @relation("EmployeeEmployeePlaces")
+  employeePlaces      EmployeePlace[] @relation("EmployeeEmployeePlaces")
   lastPlace           EmployeePlace?  @relation("EmployeeLastPlace", fields: [lastPlaceCode], references: [code], onDelete: SetNull)
+  documents           Document[]
   user                User?
 
   @@index([lastName])
@@ -299,6 +300,29 @@ model Employee {
   @@index([lastName, firstName, middleName])
   @@index([validFrom, validTo])
   @@map("employee")
+}
+
+/// Документ (наказ, відпустка, відрядження тощо)
+model Document {
+  id                String        @id @default(uuid())
+  number            String
+  date              DateTime      @db.Date
+  category          String        @default("Інше")
+  typeLabel         String        @map("type_label")
+  title             String
+  status            String        @default("draft")
+  employeeCode      Int           @map("employee_code")
+  employee          Employee      @relation(fields: [employeeCode], references: [code], onDelete: Restrict)
+  employeePlaceCode Int?          @map("employee_place_code")
+  employeePlace     EmployeePlace? @relation(fields: [employeePlaceCode], references: [code], onDelete: Restrict)
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([date])
+  @@index([employeeCode])
+  @@index([employeePlaceCode])
+  @@map("document")
 }
 
 /// Призначення на посаду — звʼязок many-to-many між Employee і Place
@@ -318,6 +342,8 @@ model EmployeePlace {
   fullName                 String         @map("fullname")
   byReasonOfUnitRename     String         @default("F") @map("byreasonof_unitrename") @db.Char(1)
   lastPlaceForEmployee     Employee?      @relation("EmployeeLastPlace")
+  deletedAt                DateTime?      @map("deleted_at")
+  documents                Document[]
 
   @@index([employeeCode])
   @@index([placeCode])

@@ -3,6 +3,7 @@ import { HealthController } from "./health.controller.js";
 import { AccountsModule } from "../accounts/accounts.module.js";
 import { AdminModule } from "../admin/admin.module.js";
 import { BootstrapModule } from "../bootstrap/bootstrap.module.js";
+import { DocumentsModule } from "../documents/documents.module.js";
 import { EmployeesModule } from "../employees/employees.module.js";
 import { OrgStructureModule } from "../org-structure/org-structure.module.js";
 import { MeModule } from "../me/me.module.js";
@@ -17,6 +18,7 @@ import { AuthModule } from "../auth/auth.module.js";
     MeModule,
     AdminModule,
     AccountsModule,
+    DocumentsModule,
     EmployeesModule,
     OrgStructureModule,
   ],

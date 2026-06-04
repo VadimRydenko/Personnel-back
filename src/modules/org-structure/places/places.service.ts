@@ -161,6 +161,17 @@ export class PlacesService {
     return this.enrichMany(places);
   }
 
+  async listVacant(): Promise<EnrichedPlace[]> {
+    const places = await this.prisma.place.findMany({
+      where: { validTo: null, manCount: 0 },
+      orderBy: [{ orgUnitCode: "asc" }, { sortOrder: "asc" }],
+    });
+
+    if (places.length === 0) return [];
+
+    return this.enrichMany(places);
+  }
+
   async listActiveByOrgUnit(orgUnitCode: number) {
     const places = await this.prisma.place.findMany({
       where: { orgUnitCode, validTo: null },
