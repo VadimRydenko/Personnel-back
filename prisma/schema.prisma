@@ -177,16 +177,46 @@ model DOrder {
 }
 
 /// Наказ (ORDERS)
-model PersonnelOrder {
+model Order {
   code       Int        @id @default(autoincrement())
   orderWhose Int        @map("order_whose")
-  orderNo    String     @map("order_no")
+  orderNo    String     @map("order_no") @db.VarChar(10)
   orderDate  DateTime   @map("order_date")
-  employeePlaces  EmployeePlace[]
+  employeePlaces   EmployeePlace[]
+  placesCreated    Place[]  @relation("PlaceCreateOrder")
+  placesDestroyed  Place[]  @relation("PlaceDestroyOrder")
 
+  @@unique([orderDate, orderNo, orderWhose], map: "orders_struct")
   @@index([orderWhose])
   @@index([orderDate])
   @@map("orders")
+}
+
+/// Довідник національностей (DNATIONALITY)
+model DNationality {
+  code      Int        @id @default(autoincrement())
+  val       String     @unique @db.VarChar(20)
+  employees Employee[]
+
+  @@map("dnationality")
+}
+
+/// Довідник звідки прийшов (DWHEREFREE)
+model DWhereFree {
+  code      Int        @id @default(autoincrement())
+  val       String     @unique @db.VarChar(100)
+  employees Employee[]
+
+  @@map("dwherefree")
+}
+
+/// Довідник сімейного стану (DFAMILYMODE)
+model DFamilyMode {
+  code      Int        @id @default(autoincrement())
+  val       String     @unique @db.VarChar(20)
+  employees Employee[]
+
+  @@map("dfamilymode")
 }
 
 /// Довідник найменувань підрозділів (DUNIT)
@@ -200,8 +230,9 @@ model DUnit {
 
 /// Довідник найменувань посад (DPLACE)
 model DPlace {
-  code Int    @id @default(autoincrement())
-  val  String @unique
+  code   Int     @id @default(autoincrement())
+  val    String  @unique
+  places Place[]
 
   @@map("dplace")
 }
@@ -221,7 +252,7 @@ model OrgUnit {
   validTo          DateTime? @map("destroy_date") @db.Date
   createOrderCode  Int       @map("create_order")
   destroyOrderCode Int?      @map("destroy_order")
-  stationing       String    @default("Нема даних")
+  stationing       String    @default("Нема даних") @db.VarChar(100)
   places           Place[]
 
   @@index([parentCode])
@@ -236,14 +267,28 @@ model Place {
   orgUnitCode      Int        @map("unit")
   orgUnit          OrgUnit    @relation(fields: [orgUnitCode], references: [code], onDelete: Restrict)
   placeTypeCode    Int        @map("place")
+  placeType        DPlace     @relation(fields: [placeTypeCode], references: [code], onDelete: Restrict)
   sortOrder        Int        @default(0) @map("place_id")
+  /// FK → DRANK.CODE (штатне звання)
+  rankCode         Int        @map("rank")
+  /// FK → DRANK.CODE (подвійна тарифна ставка; DEFAULT 86 у Firebird)
+  doubleTariffRankCode Int    @default(86) @map("doubletariffrank")
+  /// FK → DPOSTYPE.CODE (тип посади)
+  posTypeCode      Int        @map("postype")
+  /// Тарифний розряд 0–20 (TARIFFRATE у Firebird)
+  tariffRate       Int        @default(0) @map("tariffrate") @db.SmallInt
   posCount         Float      @default(1) @map("pos_count")
+  percentRate      Float      @default(0) @map("percentrate")
   isChief          Boolean    @default(false) @map("is_chief")
-  manCount         Int        @default(0) @map("man_count")
+  manCount         Int        @default(0) @map("man_count") @db.SmallInt
   validFrom        DateTime   @map("create_date") @db.Date
   validTo          DateTime?  @map("destroy_date") @db.Date
-  createOrderCode  Int        @map("create_order")
-  destroyOrderCode Int?       @map("destroy_order")
+  createOrderCode  Int            @map("create_order")
+  createOrder      Order          @relation("PlaceCreateOrder", fields: [createOrderCode], references: [code], onDelete: Restrict)
+  destroyOrderCode Int?           @map("destroy_order")
+  destroyOrder     Order?         @relation("PlaceDestroyOrder", fields: [destroyOrderCode], references: [code], onDelete: Restrict)
+  /// FK → DUNIT.CODE (ревізія підрозділу)
+  unitRevisionCode Int?           @map("unitrevision")
   employeePlaces        EmployeePlace[]
   documents             Document[]
 
@@ -256,26 +301,26 @@ model Place {
 /// Співробітник (EMPLOYEE) — відповідає таблиці MAN у Firebird staff
 model Employee {
   code                Int        @id @default(autoincrement())
-  lastName            String     @map("lastname")
-  signature           String
-  firstName           String     @map("firstname")
-  middleName          String     @map("middlename")
-  bornPlace           String     @default("Нема даних") @map("bornplace")
+  lastName            String     @map("lastname") @db.VarChar(30)
+  signature           String     @db.VarChar(30)
+  firstName           String     @map("firstname") @db.VarChar(20)
+  middleName          String     @map("middlename") @db.VarChar(20)
+  bornPlace           String     @default("Нема даних") @map("bornplace") @db.VarChar(100)
   birthday            DateTime?  @db.Date
   personalNo          String?    @map("personalno") @db.Char(8)
-  /// FK → DNATIONALITY.CODE (довідник ще не мігровано)
-  nationalityCode     Int        @map("nationality")
-  sex                 String     @default("Ч") @db.Char(1)
-  idNo                String?    @unique @map("idno") @db.Char(10)
-  /// FK → DWHEREFREE.CODE (довідник ще не мігровано)
-  fromWhereCode       Int        @map("fromwhere")
-  sciLevel            String?    @map("scilevel")
-  sciRank             String?    @map("scirank")
-  vonDate             DateTime?  @map("vondate") @db.Date
-  vlastCalced         DateTime?  @map("vlastcalced") @db.Date
-  /// FK → DFAMILYMODE.CODE (довідник ще не мігровано)
-  familyModeCode      Int        @map("familymode")
-  homeAddress         String     @default("Нема даних") @map("homeaddress")
+  nationalityCode     Int         @map("nationality")
+  nationality         DNationality @relation(fields: [nationalityCode], references: [code], onDelete: Restrict)
+  sex                 String      @default("Ч") @db.Char(1)
+  idNo                String?     @unique @map("idno") @db.Char(10)
+  fromWhereCode       Int         @map("fromwhere")
+  fromWhere           DWhereFree  @relation(fields: [fromWhereCode], references: [code], onDelete: Restrict)
+  sciLevel            String?     @map("scilevel") @db.VarChar(50)
+  sciRank             String?     @map("scirank") @db.VarChar(50)
+  vonDate             DateTime?   @map("vondate") @db.Date
+  vlastCalced         DateTime?   @map("vlastcalced") @db.Date
+  familyModeCode      Int         @map("familymode")
+  familyMode          DFamilyMode @relation(fields: [familyModeCode], references: [code], onDelete: Restrict)
+  homeAddress         String     @default("Нема даних") @map("homeaddress") @db.VarChar(100)
   validFrom           DateTime?  @map("fromdate") @db.Date
   validTo             DateTime   @default(dbgenerated("'2999-12-31'::date")) @map("todate") @db.Date
   lastRankCode        Int?       @map("last_rank")
@@ -336,14 +381,14 @@ model EmployeePlace {
   employee                 Employee       @relation("EmployeeEmployeePlaces", fields: [employeeCode], references: [code], onDelete: Restrict)
   placeCode                Int?           @map("place")
   place                    Place?         @relation(fields: [placeCode], references: [code], onDelete: Restrict)
-  sPlace                   String         @default("") @map("splace")
+  sPlace                   String         @default("") @map("splace") @db.VarChar(100)
   orderCode                Int            @map("whatorder")
-  order                    PersonnelOrder @relation(fields: [orderCode], references: [code], onDelete: Restrict)
+  order                    Order @relation(fields: [orderCode], references: [code], onDelete: Restrict)
   validFrom                DateTime       @map("fromdate") @db.Date
   validTo                  DateTime       @default(dbgenerated("'2999-12-31'::date")) @map("todate") @db.Date
   koef                     Float          @default(1)
   percentRate              Float          @default(1) @map("percentrate")
-  fullName                 String         @map("fullname")
+  fullName                 String         @map("fullname") @db.VarChar(1000)
   byReasonOfUnitRename     String         @default("F") @map("byreasonof_unitrename") @db.Char(1)
   lastPlaceForEmployee     Employee?      @relation("EmployeeLastPlace")
   deletedAt                DateTime?      @map("deleted_at")

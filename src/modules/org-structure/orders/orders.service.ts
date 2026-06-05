@@ -14,7 +14,7 @@ export class OrdersService {
 
     if (unique.length === 0) return new Map();
 
-    const rows = await this.prisma.personnelOrder.findMany({
+    const rows = await this.prisma.order.findMany({
       where: { code: { in: unique } },
       select: orderSelect,
     });
@@ -23,7 +23,7 @@ export class OrdersService {
   }
 
   async assertExists(code: number) {
-    const order = await this.prisma.personnelOrder.findUnique({
+    const order = await this.prisma.order.findUnique({
       where: { code },
     });
 
@@ -65,14 +65,14 @@ export class OrdersService {
     const orderDate = parseDateOnly(input.createOrder.orderDate);
     const orderNo = input.createOrder.orderNo.trim();
 
-    const existing = await this.prisma.personnelOrder.findFirst({
+    const existing = await this.prisma.order.findFirst({
       where: { orderWhose, orderNo, orderDate },
       select: { code: true },
     });
 
     if (existing) return existing.code;
 
-    const created = await this.prisma.personnelOrder.create({
+    const created = await this.prisma.order.create({
       data: { orderWhose, orderNo, orderDate },
       select: { code: true },
     });

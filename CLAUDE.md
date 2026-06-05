@@ -57,6 +57,19 @@ model DNationality {
 }
 ```
 
+## Known intentional deviations from Firebird
+
+| Table | Firebird column | Decision | Reason |
+|---|---|---|---|
+| `UNITS` | `SIGNATURE VARCHAR(100)` | **Removed** | Tree is built via parent FK traversal, not signature strings |
+| `UNITS` | `CHILDCOUNT INTEGER` | **Removed** | Counted via query, not denormalized |
+| `UNITS` | `PARENT NOT NULL DEFAULT 0` | `parent NULL` | NULL marks tree root; Firebird used `0` as sentinel — requires transform on migration (`0 → NULL`) |
+| `UNITS` | `DESTROYDATE NOT NULL DEFAULT '31-DEC-2999'` | `destroy_date NULL` | NULL = active unit; requires transform on migration (`'31-DEC-2999' → NULL`) |
+| `MAN` | `BORNPLACE VARCHAR(100) NULL` | `bornplace NOT NULL DEFAULT 'Нема даних'` | Intentionally NOT NULL with default |
+| `MAN` | `SEX CHAR(1) NULL` | `sex NOT NULL DEFAULT 'Ч'` | Intentionally NOT NULL with default |
+| `MAN` | `HOMEADDRESS VARCHAR(100) NULL` | `homeaddress NOT NULL DEFAULT 'Нема даних'` | Intentionally NOT NULL with default |
+| `UNITS` | — | `name`, `short_name`, `city` added | Firebird stored name via `DUNIT.VAL` + `UNITSTITLES`; flattened for simplicity |
+
 ## Table mapping reference
 
 ### Already implemented
@@ -139,6 +152,32 @@ model DNationality {
 
 > Tables `IBE$*`, `STAT_*`, `FINDMAN`, `SEARCH`, `CRITERIAS`, `WEB_*` are either tooling/audit
 > tables or web-access tables replaced by Better Auth — **do not migrate them**.
+
+## Data migration rules (Firebird → PostgreSQL)
+
+### Sentinel date `'31-DEC-2999'` → `NULL`
+
+Firebird uses `'31-DEC-2999'` as a magic date meaning "no end date / still active".
+In PostgreSQL all such columns are `NULL`-able and `NULL` means active.
+
+Apply this transform for every affected table during migration:
+
+| Table | Firebird column | PG column | Transform |
+|---|---|---|---|
+| `UNITS` | `DESTROYDATE` | `destroy_date` | `'2999-12-31' → NULL` |
+| `UNITS` | `PARENT` | `parent` | `0 → NULL` (root nodes) |
+| `PLACES` | `DESTROYDATE` | `destroy_date` | `'2999-12-31' → NULL` |
+| `MANPLACES` | `TODATE` | `todate` | `'2999-12-31' → NULL` |
+| `MAN` | `TODATE` | `todate` | `'2999-12-31' → NULL` |
+
+SQL pattern (run after pgloader transfer):
+```sql
+UPDATE units       SET destroy_date = NULL WHERE destroy_date = '2999-12-31';
+UPDATE units       SET parent = NULL        WHERE parent = 0;
+UPDATE places      SET destroy_date = NULL WHERE destroy_date = '2999-12-31';
+UPDATE employee_places SET todate = NULL   WHERE todate = '2999-12-31';
+UPDATE employee    SET todate = NULL        WHERE todate = '2999-12-31';
+```
 
 ## Module structure
 

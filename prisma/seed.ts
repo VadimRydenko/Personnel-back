@@ -131,23 +131,45 @@ async function main() {
     });
   }
 
-  const dOrder =
-    (await prisma.dOrder.findFirst({ where: { val: "Загальний" } })) ??
-    (await prisma.dOrder.create({ data: { val: "Загальний" } }));
+  const dOrderSeeds = [
+    { code: 1,  val: "Початкові дані" },
+    { code: 3,  val: "Нема даних" },
+    { code: 6,  val: "СБ України" },
+    { code: 7,  val: "КДБ СРСР" },
+    { code: 8,  val: "МО України" },
+    { code: 9,  val: "Генерального директора ФАУЗІ" },
+    { code: 10, val: "МО РФ" },
+    { code: 11, val: "Ком. 1 Повітряної армії" },
+    { code: 12, val: "Нак. МО СРСР" },
+    { code: 13, val: "МБ РФ" },
+  ];
 
-  const existingOrder = await prisma.personnelOrder.findFirst({
-    where: { orderNo: "1/2026" },
-  });
-
-  if (!existingOrder) {
-    await prisma.personnelOrder.create({
-      data: {
-        orderWhose: dOrder.code,
-        orderNo: "1/2026",
-        orderDate: new Date("2026-01-15T00:00:00.000Z"),
-      },
+  for (const dOrder of dOrderSeeds) {
+    await prisma.dOrder.upsert({
+      where: { code: dOrder.code },
+      update: { val: dOrder.val },
+      create: dOrder,
     });
   }
+
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"dorder"', 'code'), GREATEST((SELECT MAX("code") FROM "dorder"), 1))`,
+  );
+
+  await prisma.order.upsert({
+    where: { code: 1 },
+    update: {},
+    create: {
+      code: 1,
+      orderWhose: 8,
+      orderNo: "1/2026",
+      orderDate: new Date("2026-01-15T00:00:00.000Z"),
+    },
+  });
+
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"orders"', 'code'), GREATEST((SELECT MAX("code") FROM "orders"), 1))`,
+  );
 
   const dUnitSeeds = [
     { val: "Департамент", key: "department" },
@@ -177,14 +199,107 @@ async function main() {
     await prisma.dUnit.delete({ where: { code: legacyRota.code } });
   }
 
-  await prisma.dPlace.upsert({
-    where: { val: "Командир роти" },
-    update: {},
-    create: { val: "Командир роти" },
-  });
+  const dPlaceSeeds = [
+    { code: 1,  val: "начальник територіального вузла" },
+    { code: 2,  val: "помічник начальника вузла по правовій роботі - юрисконсульт" },
+    { code: 3,  val: "заступник начальника територіального вузла - начальник штабу" },
+    { code: 4,  val: "начальник штабу - заступник начальника територіального вузла" },
+    { code: 5,  val: "заступник начальника штабу" },
+    { code: 6,  val: "старший офіцер" },
+    { code: 7,  val: "відповідальний виконавець" },
+    { code: 8,  val: "старший писар-кресляр" },
+    { code: 9,  val: "писар-кресляр" },
+    { code: 10, val: "технік" },
+  ];
 
-  /** Мінімальні коди довідників (таблиці DNATIONALITY / DWHEREFREE / DFAMILYMODE ще не в PG) */
-  const catalogCode = 1;
+  for (const dPlace of dPlaceSeeds) {
+    await prisma.dPlace.upsert({
+      where: { code: dPlace.code },
+      update: { val: dPlace.val },
+      create: dPlace,
+    });
+  }
+
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"dplace"', 'code'), GREATEST((SELECT MAX("code") FROM "dplace"), 1))`,
+  );
+
+  const dNationalitySeeds = [
+    { code: 10, val: "Нема даних" },
+    { code: 11, val: "українці" },
+    { code: 12, val: "росіяни" },
+    { code: 13, val: "білоруси" },
+    { code: 14, val: "молдавани" },
+    { code: 15, val: "мордовці" },
+    { code: 16, val: "литовці" },
+    { code: 17, val: "татари" },
+    { code: 18, val: "азербайджанці" },
+    { code: 19, val: "поляки" },
+  ];
+
+  for (const item of dNationalitySeeds) {
+    await prisma.dNationality.upsert({
+      where: { code: item.code },
+      update: { val: item.val },
+      create: item,
+    });
+  }
+
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"dnationality"', 'code'), GREATEST((SELECT MAX("code") FROM "dnationality"), 1))`,
+  );
+
+  const dWhereFreeSeeds = [
+    { code: 10, val: "Нема даних" },
+    { code: 11, val: "запас Служби безпеки України" },
+    { code: 12, val: "запас Збройних Сил України" },
+    { code: 14, val: "у відставку" },
+    { code: 17, val: "МО України" },
+    { code: 18, val: "цивільні організації та установи" },
+    { code: 19, val: "СБ України" },
+    { code: 21, val: "МВС України" },
+    { code: 22, val: "Національна гвардія України" },
+    { code: 23, val: "Національне космічне агентство України" },
+  ];
+
+  for (const item of dWhereFreeSeeds) {
+    await prisma.dWhereFree.upsert({
+      where: { code: item.code },
+      update: { val: item.val },
+      create: item,
+    });
+  }
+
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"dwherefree"', 'code'), GREATEST((SELECT MAX("code") FROM "dwherefree"), 1))`,
+  );
+
+  const dFamilyModeSeeds = [
+    { code: 10, val: "Нема даних" },
+    { code: 11, val: "одружений" },
+    { code: 12, val: "неодружений" },
+    { code: 13, val: "розлучений" },
+    { code: 16, val: "розлучена" },
+    { code: 17, val: "одружений вдруге" },
+    { code: 18, val: "удовець" },
+    { code: 19, val: "заміжня" },
+    { code: 20, val: "незаміжня" },
+    { code: 21, val: "одружений втретє" },
+  ];
+
+  for (const item of dFamilyModeSeeds) {
+    await prisma.dFamilyMode.upsert({
+      where: { code: item.code },
+      update: { val: item.val },
+      create: item,
+    });
+  }
+
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"dfamilymode"', 'code'), GREATEST((SELECT MAX("code") FROM "dfamilymode"), 1))`,
+  );
+
+  const catalogCode = 10; // code=10 = "Нема даних" у всіх трьох довідниках
 
   const employeeSeeds = [
     {

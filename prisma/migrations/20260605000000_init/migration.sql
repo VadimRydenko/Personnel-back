@@ -142,10 +142,34 @@ CREATE TABLE "dorder" (
 CREATE TABLE "orders" (
     "code" SERIAL NOT NULL,
     "order_whose" INTEGER NOT NULL,
-    "order_no" TEXT NOT NULL,
+    "order_no" VARCHAR(10) NOT NULL,
     "order_date" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "orders_pkey" PRIMARY KEY ("code")
+);
+
+-- CreateTable
+CREATE TABLE "dnationality" (
+    "code" SERIAL NOT NULL,
+    "val" VARCHAR(20) NOT NULL,
+
+    CONSTRAINT "dnationality_pkey" PRIMARY KEY ("code")
+);
+
+-- CreateTable
+CREATE TABLE "dwherefree" (
+    "code" SERIAL NOT NULL,
+    "val" VARCHAR(100) NOT NULL,
+
+    CONSTRAINT "dwherefree_pkey" PRIMARY KEY ("code")
+);
+
+-- CreateTable
+CREATE TABLE "dfamilymode" (
+    "code" SERIAL NOT NULL,
+    "val" VARCHAR(20) NOT NULL,
+
+    CONSTRAINT "dfamilymode_pkey" PRIMARY KEY ("code")
 );
 
 -- CreateTable
@@ -178,7 +202,7 @@ CREATE TABLE "units" (
     "destroy_date" DATE,
     "create_order" INTEGER NOT NULL,
     "destroy_order" INTEGER,
-    "stationing" TEXT NOT NULL DEFAULT 'Нема даних',
+    "stationing" VARCHAR(100) NOT NULL DEFAULT 'Нема даних',
 
     CONSTRAINT "units_pkey" PRIMARY KEY ("code")
 );
@@ -189,13 +213,19 @@ CREATE TABLE "places" (
     "unit" INTEGER NOT NULL,
     "place" INTEGER NOT NULL,
     "place_id" INTEGER NOT NULL DEFAULT 0,
+    "rank" INTEGER NOT NULL,
+    "doubletariffrank" INTEGER NOT NULL DEFAULT 86,
+    "postype" INTEGER NOT NULL,
+    "tariffrate" SMALLINT NOT NULL DEFAULT 0,
     "pos_count" DOUBLE PRECISION NOT NULL DEFAULT 1,
+    "percentrate" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "is_chief" BOOLEAN NOT NULL DEFAULT false,
-    "man_count" INTEGER NOT NULL DEFAULT 0,
+    "man_count" SMALLINT NOT NULL DEFAULT 0,
     "create_date" DATE NOT NULL,
     "destroy_date" DATE,
     "create_order" INTEGER NOT NULL,
     "destroy_order" INTEGER,
+    "unitrevision" INTEGER,
 
     CONSTRAINT "places_pkey" PRIMARY KEY ("code")
 );
@@ -203,23 +233,23 @@ CREATE TABLE "places" (
 -- CreateTable
 CREATE TABLE "employee" (
     "code" SERIAL NOT NULL,
-    "lastname" TEXT NOT NULL,
-    "signature" TEXT NOT NULL,
-    "firstname" TEXT NOT NULL,
-    "middlename" TEXT NOT NULL,
-    "bornplace" TEXT NOT NULL DEFAULT 'Нема даних',
+    "lastname" VARCHAR(30) NOT NULL,
+    "signature" VARCHAR(30) NOT NULL,
+    "firstname" VARCHAR(20) NOT NULL,
+    "middlename" VARCHAR(20) NOT NULL,
+    "bornplace" VARCHAR(100) NOT NULL DEFAULT 'Нема даних',
     "birthday" DATE,
     "personalno" CHAR(8),
     "nationality" INTEGER NOT NULL,
     "sex" CHAR(1) NOT NULL DEFAULT 'Ч',
     "idno" CHAR(10),
     "fromwhere" INTEGER NOT NULL,
-    "scilevel" TEXT,
-    "scirank" TEXT,
+    "scilevel" VARCHAR(50),
+    "scirank" VARCHAR(50),
     "vondate" DATE,
     "vlastcalced" DATE,
     "familymode" INTEGER NOT NULL,
-    "homeaddress" TEXT NOT NULL DEFAULT 'Нема даних',
+    "homeaddress" VARCHAR(100) NOT NULL DEFAULT 'Нема даних',
     "fromdate" DATE,
     "todate" DATE NOT NULL DEFAULT '2999-12-31'::date,
     "last_rank" INTEGER,
@@ -233,18 +263,37 @@ CREATE TABLE "employee" (
 );
 
 -- CreateTable
+CREATE TABLE "document" (
+    "id" TEXT NOT NULL,
+    "number" TEXT NOT NULL,
+    "date" DATE NOT NULL,
+    "category" TEXT NOT NULL DEFAULT 'Інше',
+    "type_label" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'draft',
+    "employee_code" INTEGER NOT NULL,
+    "place_code" INTEGER,
+    "employee_place_code" INTEGER,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "document_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "employee_places" (
     "code" SERIAL NOT NULL,
     "employee" INTEGER NOT NULL,
     "place" INTEGER,
-    "splace" TEXT NOT NULL DEFAULT '',
+    "splace" VARCHAR(100) NOT NULL DEFAULT '',
     "whatorder" INTEGER NOT NULL,
     "fromdate" DATE NOT NULL,
     "todate" DATE NOT NULL DEFAULT '2999-12-31'::date,
     "koef" DOUBLE PRECISION NOT NULL DEFAULT 1,
     "percentrate" DOUBLE PRECISION NOT NULL DEFAULT 1,
-    "fullname" TEXT NOT NULL,
+    "fullname" VARCHAR(1000) NOT NULL,
     "byreasonof_unitrename" CHAR(1) NOT NULL DEFAULT 'F',
+    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "employee_places_pkey" PRIMARY KEY ("code")
 );
@@ -293,6 +342,18 @@ CREATE INDEX "orders_order_whose_idx" ON "orders"("order_whose");
 
 -- CreateIndex
 CREATE INDEX "orders_order_date_idx" ON "orders"("order_date");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "orders_struct" ON "orders"("order_date", "order_no", "order_whose");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "dnationality_val_key" ON "dnationality"("val");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "dwherefree_val_key" ON "dwherefree"("val");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "dfamilymode_val_key" ON "dfamilymode"("val");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "dunit_val_key" ON "dunit"("val");
@@ -358,6 +419,21 @@ CREATE INDEX "employee_lastname_firstname_middlename_idx" ON "employee"("lastnam
 CREATE INDEX "employee_fromdate_todate_idx" ON "employee"("fromdate", "todate");
 
 -- CreateIndex
+CREATE INDEX "document_status_idx" ON "document"("status");
+
+-- CreateIndex
+CREATE INDEX "document_date_idx" ON "document"("date");
+
+-- CreateIndex
+CREATE INDEX "document_employee_code_idx" ON "document"("employee_code");
+
+-- CreateIndex
+CREATE INDEX "document_place_code_idx" ON "document"("place_code");
+
+-- CreateIndex
+CREATE INDEX "document_employee_place_code_idx" ON "document"("employee_place_code");
+
+-- CreateIndex
 CREATE INDEX "employee_places_employee_idx" ON "employee_places"("employee");
 
 -- CreateIndex
@@ -409,7 +485,34 @@ ALTER TABLE "units" ADD CONSTRAINT "units_parent_fkey" FOREIGN KEY ("parent") RE
 ALTER TABLE "places" ADD CONSTRAINT "places_unit_fkey" FOREIGN KEY ("unit") REFERENCES "units"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "places" ADD CONSTRAINT "places_place_fkey" FOREIGN KEY ("place") REFERENCES "dplace"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "places" ADD CONSTRAINT "places_create_order_fkey" FOREIGN KEY ("create_order") REFERENCES "orders"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "places" ADD CONSTRAINT "places_destroy_order_fkey" FOREIGN KEY ("destroy_order") REFERENCES "orders"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "employee" ADD CONSTRAINT "employee_nationality_fkey" FOREIGN KEY ("nationality") REFERENCES "dnationality"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "employee" ADD CONSTRAINT "employee_fromwhere_fkey" FOREIGN KEY ("fromwhere") REFERENCES "dwherefree"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "employee" ADD CONSTRAINT "employee_familymode_fkey" FOREIGN KEY ("familymode") REFERENCES "dfamilymode"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "employee" ADD CONSTRAINT "employee_last_place_fkey" FOREIGN KEY ("last_place") REFERENCES "employee_places"("code") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "document" ADD CONSTRAINT "document_employee_code_fkey" FOREIGN KEY ("employee_code") REFERENCES "employee"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "document" ADD CONSTRAINT "document_place_code_fkey" FOREIGN KEY ("place_code") REFERENCES "places"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "document" ADD CONSTRAINT "document_employee_place_code_fkey" FOREIGN KEY ("employee_place_code") REFERENCES "employee_places"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "employee_places" ADD CONSTRAINT "employee_places_employee_fkey" FOREIGN KEY ("employee") REFERENCES "employee"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
