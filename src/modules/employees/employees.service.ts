@@ -14,6 +14,13 @@ export type EmployeeRow = {
   validFrom: Date | null;
   validTo: Date;
   lastPlaceCode: number | null;
+  lastPlace: {
+    code: number;
+    placeCode: number | null;
+    sPlace: string;
+    fullName: string;
+    validFrom: Date;
+  } | null;
   remarks: string | null;
 };
 
@@ -67,6 +74,15 @@ export class EmployeesService {
           validFrom: true,
           validTo: true,
           lastPlaceCode: true,
+          lastPlace: {
+            select: {
+              code: true,
+              placeCode: true,
+              sPlace: true,
+              fullName: true,
+              validFrom: true,
+            },
+          },
           remarks: true,
         },
       }),
@@ -91,6 +107,15 @@ export class EmployeesService {
         validFrom: true,
         validTo: true,
         lastPlaceCode: true,
+        lastPlace: {
+          select: {
+            code: true,
+            placeCode: true,
+            sPlace: true,
+            fullName: true,
+            validFrom: true,
+          },
+        },
         remarks: true,
       },
     });
@@ -125,6 +150,15 @@ export class EmployeesService {
         validFrom: true,
         validTo: true,
         lastPlaceCode: true,
+        lastPlace: {
+          select: {
+            code: true,
+            placeCode: true,
+            sPlace: true,
+            fullName: true,
+            validFrom: true,
+          },
+        },
         remarks: true,
       },
     });
@@ -166,6 +200,15 @@ export class EmployeesService {
         validFrom: true,
         validTo: true,
         lastPlaceCode: true,
+        lastPlace: {
+          select: {
+            code: true,
+            placeCode: true,
+            sPlace: true,
+            fullName: true,
+            validFrom: true,
+          },
+        },
         remarks: true,
       },
     });

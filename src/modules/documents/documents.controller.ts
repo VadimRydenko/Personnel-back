@@ -4,6 +4,7 @@ import {
   Get,
   Inject,
   Param,
+  Patch,
   Post,
   Query,
   Res,
@@ -33,7 +34,12 @@ const DocumentCreateSchema = z.object({
     .enum(["draft", "review", "sign", "done", "cancelled"])
     .optional(),
   employeeCode: z.number().int().positive(),
+  placeCode: z.number().int().positive().optional(),
   employeePlaceCode: z.number().int().positive().optional(),
+});
+
+const DocumentUpdateStatusSchema = z.object({
+  status: z.enum(["draft", "review", "sign", "done", "cancelled"]),
 });
 
 @Controller("/api/documents")
@@ -78,5 +84,31 @@ export class DocumentsController {
         .json({ message: "Invalid body", details: parsed.error });
 
     return res.status(201).json(await this.documents.createDocument(parsed.data));
+  }
+
+  @Patch("/:id")
+  async updateStatus(
+    @Param("id") idParam: string,
+    @Body() body: unknown,
+    @Res() res: Response,
+  ) {
+    const idParsed = IdParamSchema.safeParse(idParam);
+
+    if (!idParsed.success)
+      return res.status(400).json({ message: "Invalid id" });
+
+    const bodyParsed = DocumentUpdateStatusSchema.safeParse(body);
+
+    if (!bodyParsed.success)
+      return res
+        .status(400)
+        .json({ message: "Invalid body", details: bodyParsed.error });
+
+    const result = await this.documents.updateDocumentStatus(
+      idParsed.data,
+      bodyParsed.data.status,
+    );
+
+    return res.status(200).json(result);
   }
 }

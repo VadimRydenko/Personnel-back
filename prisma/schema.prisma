@@ -245,6 +245,7 @@ model Place {
   createOrderCode  Int        @map("create_order")
   destroyOrderCode Int?       @map("destroy_order")
   employeePlaces        EmployeePlace[]
+  documents             Document[]
 
   @@index([orgUnitCode])
   @@index([orgUnitCode, sortOrder])
@@ -313,6 +314,8 @@ model Document {
   status            String        @default("draft")
   employeeCode      Int           @map("employee_code")
   employee          Employee      @relation(fields: [employeeCode], references: [code], onDelete: Restrict)
+  placeCode         Int?          @map("place_code")
+  place             Place?        @relation(fields: [placeCode], references: [code], onDelete: Restrict)
   employeePlaceCode Int?          @map("employee_place_code")
   employeePlace     EmployeePlace? @relation(fields: [employeePlaceCode], references: [code], onDelete: Restrict)
   createdAt         DateTime      @default(now()) @map("created_at")
@@ -321,6 +324,7 @@ model Document {
   @@index([status])
   @@index([date])
   @@index([employeeCode])
+  @@index([placeCode])
   @@index([employeePlaceCode])
   @@map("document")
 }
