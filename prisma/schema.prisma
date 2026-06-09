@@ -183,8 +183,9 @@ model Order {
   orderNo    String     @map("order_no") @db.VarChar(10)
   orderDate  DateTime   @map("order_date")
   employeePlaces   EmployeePlace[]
-  placesCreated    Place[]  @relation("PlaceCreateOrder")
-  placesDestroyed  Place[]  @relation("PlaceDestroyOrder")
+  placesCreated    Place[]     @relation("PlaceCreateOrder")
+  placesDestroyed  Place[]     @relation("PlaceDestroyOrder")
+  beginWorks       BeginWork[]
 
   @@unique([orderDate, orderNo, orderWhose], map: "orders_struct")
   @@index([orderWhose])
@@ -237,6 +238,34 @@ model DPlace {
   @@map("dplace")
 }
 
+/// Довідник типів посад (DPOSTYPE)
+model DPosType {
+  code       Int         @id @default(autoincrement())
+  val        String      @unique @db.VarChar(50)
+  rating     Float?
+  places     Place[]
+  beginWorks BeginWork[]
+
+  @@map("dpostype")
+}
+
+/// Прийом на службу (BEGINWORK)
+model BeginWork {
+  code         Int       @id @default(autoincrement())
+  employeeCode Int       @map("man")
+  employee     Employee  @relation("EmployeeBeginWorks", fields: [employeeCode], references: [code], onDelete: Restrict)
+  posTypeCode  Int       @map("postype")
+  posType      DPosType  @relation(fields: [posTypeCode], references: [code], onDelete: Restrict)
+  orderCode    Int       @map("whatorder")
+  order        Order     @relation(fields: [orderCode], references: [code], onDelete: Restrict)
+  fromDate     DateTime  @map("fromdate") @db.Date
+  lastForEmployee Employee? @relation("EmployeeLastBeginWork")
+
+  @@index([employeeCode])
+  @@index([fromDate])
+  @@map("beginwork")
+}
+
 /// Підрозділ (UNITS)
 model OrgUnit {
   code             Int       @id @default(autoincrement())
@@ -273,8 +302,8 @@ model Place {
   rankCode         Int        @map("rank")
   /// FK → DRANK.CODE (подвійна тарифна ставка; DEFAULT 86 у Firebird)
   doubleTariffRankCode Int    @default(86) @map("doubletariffrank")
-  /// FK → DPOSTYPE.CODE (тип посади)
   posTypeCode      Int        @map("postype")
+  posType          DPosType   @relation(fields: [posTypeCode], references: [code], onDelete: Restrict)
   /// Тарифний розряд 0–20 (TARIFFRATE у Firebird)
   tariffRate       Int        @default(0) @map("tariffrate") @db.SmallInt
   posCount         Float      @default(1) @map("pos_count")
@@ -325,10 +354,12 @@ model Employee {
   validTo             DateTime   @default(dbgenerated("'2999-12-31'::date")) @map("todate") @db.Date
   lastRankCode        Int?       @map("last_rank")
   lastPlaceCode       Int?       @unique @map("last_place")
-  lastBeginworkCode   Int?       @map("last_beginwork")
+  lastBeginworkCode   Int?       @unique @map("last_beginwork")
+  lastBeginWork       BeginWork? @relation("EmployeeLastBeginWork", fields: [lastBeginworkCode], references: [code], onDelete: SetNull)
   lastEducationCode   Int?       @map("last_education")
   lastMaryCode        Int?       @map("last_mary")
   remarks             String?
+  beginWorks          BeginWork[]     @relation("EmployeeBeginWorks")
   employeePlaces      EmployeePlace[] @relation("EmployeeEmployeePlaces")
   lastPlace           EmployeePlace?  @relation("EmployeeLastPlace", fields: [lastPlaceCode], references: [code], onDelete: SetNull)
   documents           Document[]

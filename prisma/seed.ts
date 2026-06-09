@@ -285,6 +285,12 @@ async function main() {
     { code: 19, val: "заміжня" },
     { code: 20, val: "незаміжня" },
     { code: 21, val: "одружений втретє" },
+    { code: 23, val: "заміжня вдруге" },
+    { code: 24, val: "удова" },
+    { code: 25, val: "розлучений вдруге" },
+    { code: 27, val: "розлучена вдруге" },
+    { code: 28, val: "вдова" },
+    { code: 29, val: "одружений вчетверте" },
   ];
 
   for (const item of dFamilyModeSeeds) {
@@ -300,6 +306,34 @@ async function main() {
   );
 
   const catalogCode = 10; // code=10 = "Нема даних" у всіх трьох довідниках
+
+  const dPosTypeSeeds = [
+    { code: 1,  val: "офіцер" },
+    { code: 2,  val: "прапорщик" },
+    { code: 3,  val: "надстроковослужбовець" },
+    { code: 4,  val: "строкова служба" },
+    { code: 5,  val: "робітник" },
+    { code: 6,  val: "курсант" },
+    { code: 7,  val: "державний службовець" },
+    { code: 8,  val: "рядовий склад" },
+    { code: 9,  val: "молодший начальницький склад" },
+    { code: 10, val: "середній начальницький склад" },
+    { code: 11, val: "старший начальницький склад" },
+    { code: 12, val: "вищий начальницький склад" },
+    { code: 13, val: "рядовий і начальницький склад" },
+  ];
+
+  for (const item of dPosTypeSeeds) {
+    await prisma.dPosType.upsert({
+      where: { code: item.code },
+      update: { val: item.val },
+      create: item,
+    });
+  }
+
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"dpostype"', 'code'), GREATEST((SELECT MAX("code") FROM "dpostype"), 1))`,
+  );
 
   const employeeSeeds = [
     {
@@ -350,7 +384,7 @@ async function main() {
   ] as const;
 
   for (const employee of employeeSeeds) {
-    await prisma.employee.upsert({
+    const emp = await prisma.employee.upsert({
       where: { idNo: employee.idNo },
       update: {
         lastName: employee.lastName,
@@ -374,10 +408,35 @@ async function main() {
         validFrom: new Date("2020-01-01T00:00:00.000Z"),
       },
     });
+
+    // BeginWork — тільки якщо ще не існує для цього співробітника
+    const existingBeginWork = await prisma.beginWork.findFirst({
+      where: { employeeCode: emp.code },
+    });
+
+    if (!existingBeginWork) {
+      const beginWork = await prisma.beginWork.create({
+        data: {
+          employeeCode: emp.code,
+          posTypeCode: 1, // офіцер
+          orderCode: 1,   // тестовий наказ
+          fromDate: new Date("2020-01-01T00:00:00.000Z"),
+        },
+      });
+
+      await prisma.employee.update({
+        where: { code: emp.code },
+        data: { lastBeginworkCode: beginWork.code },
+      });
+    }
   }
 
   await prisma.$executeRawUnsafe(
     `SELECT setval(pg_get_serial_sequence('"employee"', 'code'), GREATEST((SELECT COALESCE(MAX("code"), 1) FROM "employee"), 1))`,
+  );
+
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"beginwork"', 'code'), GREATEST((SELECT COALESCE(MAX("code"), 1) FROM "beginwork"), 1))`,
   );
 }
 

@@ -190,6 +190,26 @@ CREATE TABLE "dplace" (
 );
 
 -- CreateTable
+CREATE TABLE "dpostype" (
+    "code" SERIAL NOT NULL,
+    "val" VARCHAR(50) NOT NULL,
+    "rating" DOUBLE PRECISION,
+
+    CONSTRAINT "dpostype_pkey" PRIMARY KEY ("code")
+);
+
+-- CreateTable
+CREATE TABLE "beginwork" (
+    "code" SERIAL NOT NULL,
+    "man" INTEGER NOT NULL,
+    "postype" INTEGER NOT NULL,
+    "whatorder" INTEGER NOT NULL,
+    "fromdate" DATE NOT NULL,
+
+    CONSTRAINT "beginwork_pkey" PRIMARY KEY ("code")
+);
+
+-- CreateTable
 CREATE TABLE "units" (
     "code" SERIAL NOT NULL,
     "parent" INTEGER,
@@ -362,6 +382,15 @@ CREATE UNIQUE INDEX "dunit_val_key" ON "dunit"("val");
 CREATE UNIQUE INDEX "dplace_val_key" ON "dplace"("val");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "dpostype_val_key" ON "dpostype"("val");
+
+-- CreateIndex
+CREATE INDEX "beginwork_man_idx" ON "beginwork"("man");
+
+-- CreateIndex
+CREATE INDEX "beginwork_fromdate_idx" ON "beginwork"("fromdate");
+
+-- CreateIndex
 CREATE INDEX "units_parent_idx" ON "units"("parent");
 
 -- CreateIndex
@@ -384,6 +413,9 @@ CREATE UNIQUE INDEX "employee_idno_key" ON "employee"("idno");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "employee_last_place_key" ON "employee"("last_place");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "employee_last_beginwork_key" ON "employee"("last_beginwork");
 
 -- CreateIndex
 CREATE INDEX "employee_lastname_idx" ON "employee"("lastname");
@@ -479,6 +511,15 @@ ALTER TABLE "user_permission" ADD CONSTRAINT "user_permission_userId_fkey" FOREI
 ALTER TABLE "user_permission" ADD CONSTRAINT "user_permission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "beginwork" ADD CONSTRAINT "beginwork_man_fkey" FOREIGN KEY ("man") REFERENCES "employee"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "beginwork" ADD CONSTRAINT "beginwork_postype_fkey" FOREIGN KEY ("postype") REFERENCES "dpostype"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "beginwork" ADD CONSTRAINT "beginwork_whatorder_fkey" FOREIGN KEY ("whatorder") REFERENCES "orders"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "units" ADD CONSTRAINT "units_parent_fkey" FOREIGN KEY ("parent") REFERENCES "units"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -486,6 +527,9 @@ ALTER TABLE "places" ADD CONSTRAINT "places_unit_fkey" FOREIGN KEY ("unit") REFE
 
 -- AddForeignKey
 ALTER TABLE "places" ADD CONSTRAINT "places_place_fkey" FOREIGN KEY ("place") REFERENCES "dplace"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "places" ADD CONSTRAINT "places_postype_fkey" FOREIGN KEY ("postype") REFERENCES "dpostype"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "places" ADD CONSTRAINT "places_create_order_fkey" FOREIGN KEY ("create_order") REFERENCES "orders"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -501,6 +545,9 @@ ALTER TABLE "employee" ADD CONSTRAINT "employee_fromwhere_fkey" FOREIGN KEY ("fr
 
 -- AddForeignKey
 ALTER TABLE "employee" ADD CONSTRAINT "employee_familymode_fkey" FOREIGN KEY ("familymode") REFERENCES "dfamilymode"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "employee" ADD CONSTRAINT "employee_last_beginwork_fkey" FOREIGN KEY ("last_beginwork") REFERENCES "beginwork"("code") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "employee" ADD CONSTRAINT "employee_last_place_fkey" FOREIGN KEY ("last_place") REFERENCES "employee_places"("code") ON DELETE SET NULL ON UPDATE CASCADE;
