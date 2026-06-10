@@ -3,6 +3,7 @@ import { PrismaService } from "../../prisma/prisma.service.js";
 
 const unitTypeSelect = { code: true, val: true, key: true } as const;
 const placeTypeSelect = { code: true, val: true } as const;
+const posTypeSelect = { code: true, val: true } as const;
 
 @Injectable()
 export class CatalogService {
@@ -19,6 +20,13 @@ export class CatalogService {
     return this.prisma.dPlace.findMany({
       orderBy: { val: "asc" },
       select: placeTypeSelect,
+    });
+  }
+
+  listPosTypes() {
+    return this.prisma.dPosType.findMany({
+      orderBy: { code: "asc" },
+      select: posTypeSelect,
     });
   }
 

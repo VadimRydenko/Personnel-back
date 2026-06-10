@@ -238,6 +238,14 @@ model DPlace {
   @@map("dplace")
 }
 
+/// Довідник штатних звань (DRANK)
+model DRank {
+  code Int    @id @default(autoincrement())
+  val  String @unique
+
+  @@map("drank")
+}
+
 /// Довідник типів посад (DPOSTYPE)
 model DPosType {
   code       Int         @id @default(autoincrement())
@@ -299,7 +307,7 @@ model Place {
   placeType        DPlace     @relation(fields: [placeTypeCode], references: [code], onDelete: Restrict)
   sortOrder        Int        @default(0) @map("place_id")
   /// FK → DRANK.CODE (штатне звання)
-  rankCode         Int        @map("rank")
+  rankCode         Int       @map("rank")
   /// FK → DRANK.CODE (подвійна тарифна ставка; DEFAULT 86 у Firebird)
   doubleTariffRankCode Int    @default(86) @map("doubletariffrank")
   posTypeCode      Int        @map("postype")
@@ -388,6 +396,7 @@ model Document {
   typeLabel         String        @map("type_label")
   title             String
   status            String        @default("draft")
+  basis             String?       @db.VarChar(10)
   employeeCode      Int           @map("employee_code")
   employee          Employee      @relation(fields: [employeeCode], references: [code], onDelete: Restrict)
   placeCode         Int?          @map("place_code")

@@ -24,6 +24,7 @@ const PlaceCodeParamSchema = z.coerce.number().int().positive();
 const CreatePlaceBodySchema = z
   .object({
     placeTypeCode: z.number().int().positive(),
+    posTypeCode: z.number().int().positive(),
     createOrderCode: z.number().int().positive().optional(),
     createOrder: z
       .object({

@@ -210,6 +210,7 @@ export class PlacesService {
       data: {
         orgUnitCode,
         placeTypeCode: input.placeTypeCode,
+        posTypeCode: input.posTypeCode,
         sortOrder,
         validFrom,
         createOrderCode,

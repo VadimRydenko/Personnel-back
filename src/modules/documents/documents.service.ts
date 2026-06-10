@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { OrdersService } from "../org-structure/orders/orders.service.js";
 import { ACTIVE_EMPLOYEE_PLACE_VALID_TO } from "../org-structure/employee-places/employee-places.constants.js";
@@ -13,6 +13,7 @@ export type DocumentRow = {
   typeLabel: string;
   title: string;
   status: string;
+  basis: string | null;
   employeeCode: number;
   placeCode: number | null;
   employeePlaceCode: number | null;
@@ -27,6 +28,7 @@ export type CreateDocumentInput = {
   typeLabel: string;
   title: string;
   status?: string | undefined;
+  basis?: string | undefined;
   employeeCode: number;
   placeCode?: number | undefined;
   employeePlaceCode?: number | undefined;
@@ -40,6 +42,7 @@ const docSelect = {
   typeLabel: true,
   title: true,
   status: true,
+  basis: true,
   employeeCode: true,
   placeCode: true,
   employeePlaceCode: true,
@@ -107,6 +110,7 @@ export class DocumentsService {
         typeLabel: input.typeLabel,
         title: input.title,
         status: input.status ?? "draft",
+        basis: input.basis ?? null,
         employeeCode: input.employeeCode,
         placeCode: input.placeCode ?? null,
         employeePlaceCode: input.employeePlaceCode ?? null,
@@ -131,6 +135,7 @@ export class DocumentsService {
         number: true,
         date: true,
         status: true,
+        basis: true,
         employeeCode: true,
         placeCode: true,
       },
@@ -151,8 +156,12 @@ export class DocumentsService {
       throw new NotFoundException(`Employee ${doc.employeeCode} not found`);
     }
 
+    if (!doc.basis?.trim()) {
+      throw new BadRequestException("Вкажіть підставу (номер наказу) перед затвердженням");
+    }
+
     const orderCode = await this.orders.resolveCreateOrderCode({
-      createOrder: { orderNo: doc.number, orderDate: doc.date },
+      createOrder: { orderNo: doc.basis.trim(), orderDate: doc.date },
     });
 
     const fullName = await this.buildFullName(employee, doc.placeCode);

@@ -65,6 +65,12 @@ export class OrdersService {
     const orderDate = parseDateOnly(input.createOrder.orderDate);
     const orderNo = input.createOrder.orderNo.trim();
 
+    if (orderNo.length > 10) {
+      throw new BadRequestException(
+        `Номер наказу "${orderNo}" перевищує 10 символів`,
+      );
+    }
+
     const existing = await this.prisma.order.findFirst({
       where: { orderWhose, orderNo, orderDate },
       select: { code: true },

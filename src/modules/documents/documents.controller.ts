@@ -33,6 +33,7 @@ const DocumentCreateSchema = z.object({
   status: z
     .enum(["draft", "review", "sign", "done", "cancelled"])
     .optional(),
+  basis: z.string().max(10).optional(),
   employeeCode: z.number().int().positive(),
   placeCode: z.number().int().positive().optional(),
   employeePlaceCode: z.number().int().positive().optional(),
