@@ -35,7 +35,7 @@ export type EnrichedPlace = PlaceRow & {
     code: number;
     name: string;
     shortName: string | null;
-    city: string;
+    stationing: string;
   } | null;
   /** Поточні призначення з MANPLACES (активні, TODATE = 2999-12-31) */
   assignees: PlaceAssignee[];

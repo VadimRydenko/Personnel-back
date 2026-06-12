@@ -47,7 +47,7 @@ export class PlacesService {
     orders: Map<number, { code: number; orderNo: string; orderDate: Date }>,
     orgUnits: Map<
       number,
-      { code: number; name: string; shortName: string | null; city: string }
+      { code: number; name: string; shortName: string | null; stationing: string }
     >,
     assigneesByPlace: Map<number, PlaceAssignee[]>,
   ): EnrichedPlace {
@@ -70,13 +70,13 @@ export class PlacesService {
     if (unique.length === 0) {
       return new Map<
         number,
-        { code: number; name: string; shortName: string | null; city: string }
+        { code: number; name: string; shortName: string | null; stationing: string }
       >();
     }
 
     const rows = await this.prisma.orgUnit.findMany({
       where: { code: { in: unique } },
-      select: { code: true, name: true, shortName: true, city: true },
+      select: { code: true, name: true, shortName: true, stationing: true },
     });
 
     return new Map(rows.map((row) => [row.code, row]));

@@ -6,7 +6,6 @@ export type OrgUnitRow = {
   unitTypeCode: number;
   name: string;
   shortName: string | null;
-  city: string;
   sortOrder: number;
   validFrom: Date;
   validTo: Date | null;
@@ -19,10 +18,17 @@ export type CreateOrgUnitInput = CreateOrderInput & {
   parentCode?: number | null | undefined;
   unitTypeCode: number;
   name: string;
-  shortName?: string | undefined;
-  city: string;
+  stationing: string;
   validFrom: Date;
+};
+
+export type UpdateOrgUnitInput = {
+  name?: string | undefined;
+  unitTypeCode?: number | undefined;
   stationing?: string | undefined;
+  validFrom?: Date | undefined;
+  createOrderCode?: number | undefined;
+  createOrder?: { orderNo: string; orderDate: Date } | undefined;
 };
 
 export type EnrichedOrgUnit = OrgUnitRow & {

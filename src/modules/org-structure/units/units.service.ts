@@ -14,6 +14,7 @@ import type {
   EnrichedOrgUnit,
   OrgUnitRow,
   OrgUnitTreeNode,
+  UpdateOrgUnitInput,
 } from "./units.types.js";
 
 @Injectable()
@@ -186,6 +187,56 @@ export class UnitsService {
     return { ...unit, places };
   }
 
+  private computeShortName(name: string): string {
+    const words = name.trim().split(/\s+/).filter(Boolean);
+
+    if (words.length === 0) return "";
+
+    if (words.length === 1) return (words[0] ?? "").slice(0, 3).toUpperCase();
+
+    return words.map((w) => w[0] ?? "").join("").toUpperCase();
+  }
+
+  async update(code: number, input: UpdateOrgUnitInput) {
+    const existing = await this.prisma.orgUnit.findUnique({ where: { code } });
+
+    if (!existing) {
+      throw new NotFoundException(`Підрозділ з code=${code} не знайдено`);
+    }
+
+    const data: Parameters<typeof this.prisma.orgUnit.update>[0]["data"] = {};
+
+    if (input.name != null) {
+      data.name = input.name.trim();
+      data.shortName = this.computeShortName(input.name.trim());
+    }
+
+    if (input.unitTypeCode != null) {
+      await this.catalog.assertDUnitExists(input.unitTypeCode);
+      data.unitTypeCode = input.unitTypeCode;
+    }
+
+    if (input.stationing != null) data.stationing = input.stationing.trim();
+
+    if (input.validFrom != null) data.validFrom = parseDateOnly(input.validFrom);
+
+    if (input.createOrder != null || input.createOrderCode != null) {
+      const orderInput = {
+        createOrderCode: input.createOrderCode,
+        createOrder: input.createOrder,
+      };
+      const createOrderCode =
+        await this.orders.resolveCreateOrderCode(orderInput);
+
+      data.createOrderCode = createOrderCode;
+    }
+
+    const updated = await this.prisma.orgUnit.update({ where: { code }, data });
+    const [enriched] = await this.enrichMany([updated]);
+
+    return enriched;
+  }
+
   async create(input: CreateOrgUnitInput) {
     await this.catalog.assertDUnitExists(input.unitTypeCode);
     const createOrderCode = await this.orders.resolveCreateOrderCode(input);
@@ -200,20 +251,8 @@ export class UnitsService {
     const sortOrder = await this.nextSortOrder(parentCode);
 
     const name = input.name.trim();
-    const shortName = input.shortName?.trim() || null;
-    const city = input.city.trim();
-    let stationing = input.stationing?.trim() || "Нема даних";
-
-    if (parentCode !== null && stationing === "Нема даних") {
-      const parent = await this.prisma.orgUnit.findUnique({
-        where: { code: parentCode },
-        select: { stationing: true },
-      });
-
-      if (parent?.stationing && parent.stationing !== "Нема даних") {
-        stationing = parent.stationing;
-      }
-    }
+    const shortName = this.computeShortName(name);
+    const stationing = input.stationing.trim();
 
     const created = await this.prisma.orgUnit.create({
       data: {
@@ -221,7 +260,6 @@ export class UnitsService {
         unitTypeCode: input.unitTypeCode,
         name,
         shortName,
-        city,
         sortOrder,
         validFrom,
         createOrderCode,

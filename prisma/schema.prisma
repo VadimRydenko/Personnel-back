@@ -283,13 +283,12 @@ model OrgUnit {
   unitTypeCode     Int       @map("unit")
   name             String    @default("") @map("name")
   shortName        String?   @map("short_name")
-  city             String    @default("")
   sortOrder        Int       @map("unit_id")
   validFrom        DateTime  @map("create_date") @db.Date
   validTo          DateTime? @map("destroy_date") @db.Date
   createOrderCode  Int       @map("create_order")
   destroyOrderCode Int?      @map("destroy_order")
-  stationing       String    @default("Нема даних") @db.VarChar(100)
+  stationing       String    @default("") @db.VarChar(100)
   places           Place[]
 
   @@index([parentCode])

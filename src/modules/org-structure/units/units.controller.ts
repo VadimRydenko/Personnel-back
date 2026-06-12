@@ -5,6 +5,7 @@ import {
   Inject,
   Param,
   Post,
+  Put,
   Query,
   Res,
   UseGuards,
@@ -36,13 +37,26 @@ const ParentQuerySchema = z.object({
     .transform((v) => v !== "false"),
 });
 
+const UpdateOrgUnitBodySchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  unitTypeCode: z.number().int().positive().optional(),
+  stationing: z.string().min(1).max(100).optional(),
+  validFrom: DateOnlySchema.optional(),
+  createOrderCode: z.number().int().positive().optional(),
+  createOrder: z
+    .object({
+      orderNo: z.string().min(1).max(50),
+      orderDate: DateOnlySchema,
+    })
+    .optional(),
+});
+
 const CreateOrgUnitBodySchema = z
   .object({
     parentCode: z.number().int().positive().nullable().optional(),
     unitTypeCode: z.number().int().positive(),
     name: z.string().min(1).max(120),
-    shortName: z.string().min(1).max(6).optional(),
-    city: z.string().min(1).max(100),
+    stationing: z.string().min(1).max(100),
     createOrderCode: z.number().int().positive().optional(),
     createOrder: z
       .object({
@@ -51,7 +65,6 @@ const CreateOrgUnitBodySchema = z
       })
       .optional(),
     validFrom: DateOnlySchema,
-    stationing: z.string().min(1).max(100).optional(),
   })
   .refine((v) => v.createOrderCode != null || v.createOrder != null, {
     message:
@@ -90,6 +103,31 @@ export class UnitsController {
     }
 
     const unit = await this.units.getOne(code);
+
+    return res.status(200).json(unit);
+  }
+
+  @Put("/:code")
+  async updateUnit(
+    @Param("code") codeParam: string,
+    @Body() body: unknown,
+    @Res() res: Response,
+  ) {
+    const code = Number(codeParam);
+
+    if (!Number.isInteger(code) || code <= 0) {
+      return res.status(400).json({ message: "Invalid unit code" });
+    }
+
+    const parsed = UpdateOrgUnitBodySchema.safeParse(body);
+
+    if (!parsed.success) {
+      return res
+        .status(400)
+        .json({ message: "Invalid body", details: parsed.error.flatten() });
+    }
+
+    const unit = await this.units.update(code, parsed.data);
 
     return res.status(200).json(unit);
   }
