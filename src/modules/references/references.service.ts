@@ -8,6 +8,7 @@ type RefEntry = {
   fetch: () => Promise<{ code: number; val: string }[]>;
   count: () => Promise<number>;
   update: (code: number, val: string) => Promise<{ code: number; val: string }>;
+  delete: (code: number) => Promise<{ code: number; val: string }>;
 };
 
 @Injectable()
@@ -24,6 +25,7 @@ export class ReferencesService {
         count: () => this.prisma.dRank.count(),
         update: (code, val) =>
           this.prisma.dRank.update({ where: { code }, data: { val } }),
+        delete: (code) => this.prisma.dRank.delete({ where: { code } }),
       },
       {
         key: "family-modes",
@@ -34,6 +36,7 @@ export class ReferencesService {
         count: () => this.prisma.dFamilyMode.count(),
         update: (code, val) =>
           this.prisma.dFamilyMode.update({ where: { code }, data: { val } }),
+        delete: (code) => this.prisma.dFamilyMode.delete({ where: { code } }),
       },
       {
         key: "orders",
@@ -43,6 +46,7 @@ export class ReferencesService {
         count: () => this.prisma.dOrder.count(),
         update: (code, val) =>
           this.prisma.dOrder.update({ where: { code }, data: { val } }),
+        delete: (code) => this.prisma.dOrder.delete({ where: { code } }),
       },
       {
         key: "place-types",
@@ -52,6 +56,7 @@ export class ReferencesService {
         count: () => this.prisma.dPlace.count(),
         update: (code, val) =>
           this.prisma.dPlace.update({ where: { code }, data: { val } }),
+        delete: (code) => this.prisma.dPlace.delete({ where: { code } }),
       },
     ];
   }
@@ -81,5 +86,13 @@ export class ReferencesService {
     if (!entry) throw new NotFoundException(`Довідник "${key}" не знайдено`);
 
     return entry.update(code, val);
+  }
+
+  async deleteItem(key: string, code: number) {
+    const entry = this.registry.find((e) => e.key === key);
+
+    if (!entry) throw new NotFoundException(`Довідник "${key}" не знайдено`);
+
+    return entry.delete(code);
   }
 }

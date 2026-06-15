@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
@@ -54,5 +55,19 @@ export class ReferencesController {
     }
 
     return this.refs.updateItem(key, parsedCode.data, parsedBody.data.val);
+  }
+
+  @Delete(":key/:code")
+  async deleteItem(
+    @Param("key") key: string,
+    @Param("code") codeParam: string,
+  ) {
+    const parsedCode = CodeParamSchema.safeParse(codeParam);
+
+    if (!parsedCode.success) {
+      throw new BadRequestException("Невалідний код запису");
+    }
+
+    return this.refs.deleteItem(key, parsedCode.data);
   }
 }
