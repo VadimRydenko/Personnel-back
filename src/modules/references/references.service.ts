@@ -7,6 +7,7 @@ type RefEntry = {
   description: string;
   fetch: () => Promise<{ code: number; val: string }[]>;
   count: () => Promise<number>;
+  update: (code: number, val: string) => Promise<{ code: number; val: string }>;
 };
 
 @Injectable()
@@ -21,6 +22,8 @@ export class ReferencesService {
         description: "Військові та спеціальні звання",
         fetch: () => this.prisma.dRank.findMany({ orderBy: { code: "asc" } }),
         count: () => this.prisma.dRank.count(),
+        update: (code, val) =>
+          this.prisma.dRank.update({ where: { code }, data: { val } }),
       },
       {
         key: "family-modes",
@@ -29,6 +32,8 @@ export class ReferencesService {
         fetch: () =>
           this.prisma.dFamilyMode.findMany({ orderBy: { code: "asc" } }),
         count: () => this.prisma.dFamilyMode.count(),
+        update: (code, val) =>
+          this.prisma.dFamilyMode.update({ where: { code }, data: { val } }),
       },
       {
         key: "orders",
@@ -36,6 +41,8 @@ export class ReferencesService {
         description: "Перелік підрозділів-емітентів наказів",
         fetch: () => this.prisma.dOrder.findMany({ orderBy: { code: "asc" } }),
         count: () => this.prisma.dOrder.count(),
+        update: (code, val) =>
+          this.prisma.dOrder.update({ where: { code }, data: { val } }),
       },
       {
         key: "place-types",
@@ -43,6 +50,8 @@ export class ReferencesService {
         description: "Класифікатор типів посад",
         fetch: () => this.prisma.dPlace.findMany({ orderBy: { code: "asc" } }),
         count: () => this.prisma.dPlace.count(),
+        update: (code, val) =>
+          this.prisma.dPlace.update({ where: { code }, data: { val } }),
       },
     ];
   }
@@ -64,5 +73,13 @@ export class ReferencesService {
     if (!entry) throw new NotFoundException(`Довідник "${key}" не знайдено`);
 
     return entry.fetch();
+  }
+
+  async updateItem(key: string, code: number, val: string) {
+    const entry = this.registry.find((e) => e.key === key);
+
+    if (!entry) throw new NotFoundException(`Довідник "${key}" не знайдено`);
+
+    return entry.update(code, val);
   }
 }
