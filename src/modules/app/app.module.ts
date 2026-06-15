@@ -6,6 +6,7 @@ import { BootstrapModule } from "../bootstrap/bootstrap.module.js";
 import { DocumentsModule } from "../documents/documents.module.js";
 import { EmployeesModule } from "../employees/employees.module.js";
 import { OrgStructureModule } from "../org-structure/org-structure.module.js";
+import { ReferencesModule } from "../references/references.module.js";
 import { MeModule } from "../me/me.module.js";
 import { PrismaModule } from "../prisma/prisma.module.js";
 import { AuthModule } from "../auth/auth.module.js";
@@ -21,6 +22,7 @@ import { AuthModule } from "../auth/auth.module.js";
     DocumentsModule,
     EmployeesModule,
     OrgStructureModule,
+    ReferencesModule,
   ],
   controllers: [HealthController],
 })
