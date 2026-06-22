@@ -214,6 +214,7 @@ export class PlacesService {
         sortOrder,
         validFrom,
         createOrderCode,
+        rankCode: input.rankCode,
         posCount: input.posCount ?? 1,
         isChief: input.isChief ?? false,
       },

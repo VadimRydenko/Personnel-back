@@ -30,6 +30,13 @@ export class CatalogService {
     });
   }
 
+  listRanks() {
+    return this.prisma.dRank.findMany({
+      orderBy: { code: "asc" },
+      select: { code: true, val: true },
+    });
+  }
+
   async loadUnitTypesMap(codes: number[]) {
     const unique = [...new Set(codes)];
 

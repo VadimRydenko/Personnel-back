@@ -17,6 +17,7 @@ export type PlaceRow = {
 export type CreatePlaceInput = CreateOrderInput & {
   placeTypeCode: number;
   posTypeCode: number;
+  rankCode: number;
   validFrom: Date;
   posCount?: number | undefined;
   isChief?: boolean | undefined;

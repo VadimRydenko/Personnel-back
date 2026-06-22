@@ -25,6 +25,7 @@ const CreatePlaceBodySchema = z
   .object({
     placeTypeCode: z.number().int().positive(),
     posTypeCode: z.number().int().positive(),
+    rankCode: z.number().int().positive(),
     createOrderCode: z.number().int().positive().optional(),
     createOrder: z
       .object({

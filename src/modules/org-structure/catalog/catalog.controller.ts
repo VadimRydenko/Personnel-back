@@ -12,12 +12,13 @@ export class CatalogController {
 
   @Get("/catalog")
   async getCatalog(@Res() res: Response) {
-    const [unitTypes, placeTypes, posTypes] = await Promise.all([
+    const [unitTypes, placeTypes, posTypes, ranks] = await Promise.all([
       this.catalog.listUnitTypes(),
       this.catalog.listPlaceTypes(),
       this.catalog.listPosTypes(),
+      this.catalog.listRanks(),
     ]);
 
-    return res.status(200).json({ unitTypes, placeTypes, posTypes });
+    return res.status(200).json({ unitTypes, placeTypes, posTypes, ranks });
   }
 }
