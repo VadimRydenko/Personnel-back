@@ -7,6 +7,7 @@ type RefEntry = {
   description: string;
   fetch: () => Promise<{ code: number; val: string }[]>;
   count: () => Promise<number>;
+  create: (val: string) => Promise<{ code: number; val: string }>;
   update: (code: number, val: string) => Promise<{ code: number; val: string }>;
   delete: (code: number) => Promise<{ code: number; val: string }>;
 };
@@ -23,6 +24,7 @@ export class ReferencesService {
         description: "Військові та спеціальні звання",
         fetch: () => this.prisma.dRank.findMany({ orderBy: { code: "asc" } }),
         count: () => this.prisma.dRank.count(),
+        create: (val) => this.prisma.dRank.create({ data: { val } }),
         update: (code, val) =>
           this.prisma.dRank.update({ where: { code }, data: { val } }),
         delete: (code) => this.prisma.dRank.delete({ where: { code } }),
@@ -34,6 +36,7 @@ export class ReferencesService {
         fetch: () =>
           this.prisma.dFamilyMode.findMany({ orderBy: { code: "asc" } }),
         count: () => this.prisma.dFamilyMode.count(),
+        create: (val) => this.prisma.dFamilyMode.create({ data: { val } }),
         update: (code, val) =>
           this.prisma.dFamilyMode.update({ where: { code }, data: { val } }),
         delete: (code) => this.prisma.dFamilyMode.delete({ where: { code } }),
@@ -44,6 +47,7 @@ export class ReferencesService {
         description: "Перелік підрозділів-емітентів наказів",
         fetch: () => this.prisma.dOrder.findMany({ orderBy: { code: "asc" } }),
         count: () => this.prisma.dOrder.count(),
+        create: (val) => this.prisma.dOrder.create({ data: { val } }),
         update: (code, val) =>
           this.prisma.dOrder.update({ where: { code }, data: { val } }),
         delete: (code) => this.prisma.dOrder.delete({ where: { code } }),
@@ -54,6 +58,7 @@ export class ReferencesService {
         description: "Класифікатор типів посад",
         fetch: () => this.prisma.dPlace.findMany({ orderBy: { code: "asc" } }),
         count: () => this.prisma.dPlace.count(),
+        create: (val) => this.prisma.dPlace.create({ data: { val } }),
         update: (code, val) =>
           this.prisma.dPlace.update({ where: { code }, data: { val } }),
         delete: (code) => this.prisma.dPlace.delete({ where: { code } }),
@@ -78,6 +83,14 @@ export class ReferencesService {
     if (!entry) throw new NotFoundException(`Довідник "${key}" не знайдено`);
 
     return entry.fetch();
+  }
+
+  async createItem(key: string, val: string) {
+    const entry = this.registry.find((e) => e.key === key);
+
+    if (!entry) throw new NotFoundException(`Довідник "${key}" не знайдено`);
+
+    return entry.create(val);
   }
 
   async updateItem(key: string, code: number, val: string) {

@@ -6,6 +6,7 @@ import {
   Get,
   Inject,
   Param,
+  Post,
   Put,
   UseGuards,
 } from "@nestjs/common";
@@ -34,6 +35,17 @@ export class ReferencesController {
   @Get(":key")
   listItems(@Param("key") key: string) {
     return this.refs.listItems(key);
+  }
+
+  @Post(":key")
+  async createItem(@Param("key") key: string, @Body() body: unknown) {
+    const parsed = UpdateItemBodySchema.safeParse(body);
+
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.message);
+    }
+
+    return this.refs.createItem(key, parsed.data.val);
   }
 
   @Put(":key/:code")
