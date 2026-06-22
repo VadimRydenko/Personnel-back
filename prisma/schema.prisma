@@ -306,7 +306,7 @@ model Place {
   placeType        DPlace     @relation(fields: [placeTypeCode], references: [code], onDelete: Restrict)
   sortOrder        Int        @default(0) @map("place_id")
   /// FK → DRANK.CODE (штатне звання)
-  rankCode         Int       @map("rank")
+  rankCode         Int?      @map("rank")
   /// FK → DRANK.CODE (подвійна тарифна ставка; DEFAULT 86 у Firebird)
   doubleTariffRankCode Int    @default(86) @map("doubletariffrank")
   posTypeCode      Int        @map("postype")

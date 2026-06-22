@@ -133,9 +133,9 @@ export class EmployeesService {
         sex: input.sex ?? "Ч",
         idNo: input.idNo ?? null,
         remarks: input.remarks ?? null,
-        nationalityCode: 1,
-        fromWhereCode: 1,
-        familyModeCode: 1,
+        nationalityCode: 11,
+        fromWhereCode: 10,
+        familyModeCode: 10,
       },
       select: {
         code: true,
