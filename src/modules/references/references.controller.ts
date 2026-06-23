@@ -14,8 +14,13 @@ import { z } from "zod";
 import { AuthenticatedGuard } from "../auth/guards/authenticated.guard.js";
 import { ReferencesService } from "./references.service.js";
 
-const UpdateItemBodySchema = z.object({
+const ItemBodySchema = z.object({
   val: z.string().min(1, "Значення не може бути порожнім").max(255),
+});
+
+const ReferenceBodySchema = z.object({
+  title: z.string().min(1, "Назва не може бути порожньою").max(100),
+  description: z.string().max(255).default(""),
 });
 
 const CodeParamSchema = z.coerce.number().int().positive();
@@ -32,6 +37,20 @@ export class ReferencesController {
     return this.refs.listMeta();
   }
 
+  @Post()
+  async createReference(@Body() body: unknown) {
+    const parsed = ReferenceBodySchema.safeParse(body);
+
+    if (!parsed.success) throw new BadRequestException(parsed.error.message);
+
+    return this.refs.createReference(parsed.data.title, parsed.data.description);
+  }
+
+  @Delete(":key")
+  async deleteReference(@Param("key") key: string) {
+    return this.refs.deleteReference(key);
+  }
+
   @Get(":key")
   listItems(@Param("key") key: string) {
     return this.refs.listItems(key);
@@ -39,11 +58,9 @@ export class ReferencesController {
 
   @Post(":key")
   async createItem(@Param("key") key: string, @Body() body: unknown) {
-    const parsed = UpdateItemBodySchema.safeParse(body);
+    const parsed = ItemBodySchema.safeParse(body);
 
-    if (!parsed.success) {
-      throw new BadRequestException(parsed.error.message);
-    }
+    if (!parsed.success) throw new BadRequestException(parsed.error.message);
 
     return this.refs.createItem(key, parsed.data.val);
   }
@@ -56,15 +73,11 @@ export class ReferencesController {
   ) {
     const parsedCode = CodeParamSchema.safeParse(codeParam);
 
-    if (!parsedCode.success) {
-      throw new BadRequestException("Невалідний код запису");
-    }
+    if (!parsedCode.success) throw new BadRequestException("Невалідний код запису");
 
-    const parsedBody = UpdateItemBodySchema.safeParse(body);
+    const parsedBody = ItemBodySchema.safeParse(body);
 
-    if (!parsedBody.success) {
-      throw new BadRequestException(parsedBody.error.message);
-    }
+    if (!parsedBody.success) throw new BadRequestException(parsedBody.error.message);
 
     return this.refs.updateItem(key, parsedCode.data, parsedBody.data.val);
   }
@@ -76,9 +89,7 @@ export class ReferencesController {
   ) {
     const parsedCode = CodeParamSchema.safeParse(codeParam);
 
-    if (!parsedCode.success) {
-      throw new BadRequestException("Невалідний код запису");
-    }
+    if (!parsedCode.success) throw new BadRequestException("Невалідний код запису");
 
     return this.refs.deleteItem(key, parsedCode.data);
   }

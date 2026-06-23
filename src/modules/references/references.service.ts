@@ -1,4 +1,10 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 
 type RefEntry = {
@@ -12,12 +18,14 @@ type RefEntry = {
   delete: (code: number) => Promise<{ code: number; val: string }>;
 };
 
+const HARDCODED_KEYS = new Set(["ranks", "family-modes", "orders", "place-types"]);
+
 @Injectable()
 export class ReferencesService {
-  private readonly registry: RefEntry[];
+  private readonly hardcoded: RefEntry[];
 
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {
-    this.registry = [
+    this.hardcoded = [
       {
         key: "ranks",
         title: "Звання",
@@ -66,10 +74,64 @@ export class ReferencesService {
     ];
   }
 
-  async listMeta() {
-    const counts = await Promise.all(this.registry.map((e) => e.count()));
+  private makeDynamicEntry(dir: {
+    key: string;
+    title: string;
+    description: string;
+  }): RefEntry {
+    const key = dir.key;
 
-    return this.registry.map((e, i) => ({
+    return {
+      key,
+      title: dir.title,
+      description: dir.description,
+      fetch: async () => {
+        const rows = await this.prisma.refItem.findMany({
+          where: { directoryKey: key },
+          orderBy: { id: "asc" },
+        });
+
+        return rows.map((r) => ({ code: r.id, val: r.val }));
+      },
+      count: () => this.prisma.refItem.count({ where: { directoryKey: key } }),
+      create: async (val) => {
+        const row = await this.prisma.refItem.create({
+          data: { directoryKey: key, val },
+        });
+
+        return { code: row.id, val: row.val };
+      },
+      update: async (code, val) => {
+        const row = await this.prisma.refItem.update({
+          where: { id: code, directoryKey: key },
+          data: { val },
+        });
+
+        return { code: row.id, val: row.val };
+      },
+      delete: async (code) => {
+        const row = await this.prisma.refItem.delete({
+          where: { id: code, directoryKey: key },
+        });
+
+        return { code: row.id, val: row.val };
+      },
+    };
+  }
+
+  private async buildRegistry(): Promise<RefEntry[]> {
+    const dynamic = await this.prisma.refDirectory.findMany({
+      orderBy: { createdAt: "asc" },
+    });
+
+    return [...this.hardcoded, ...dynamic.map((d) => this.makeDynamicEntry(d))];
+  }
+
+  async listMeta() {
+    const registry = await this.buildRegistry();
+    const counts = await Promise.all(registry.map((e) => e.count()));
+
+    return registry.map((e, i) => ({
       key: e.key,
       title: e.title,
       description: e.description,
@@ -78,7 +140,8 @@ export class ReferencesService {
   }
 
   async listItems(key: string) {
-    const entry = this.registry.find((e) => e.key === key);
+    const registry = await this.buildRegistry();
+    const entry = registry.find((e) => e.key === key);
 
     if (!entry) throw new NotFoundException(`Довідник "${key}" не знайдено`);
 
@@ -86,7 +149,8 @@ export class ReferencesService {
   }
 
   async createItem(key: string, val: string) {
-    const entry = this.registry.find((e) => e.key === key);
+    const registry = await this.buildRegistry();
+    const entry = registry.find((e) => e.key === key);
 
     if (!entry) throw new NotFoundException(`Довідник "${key}" не знайдено`);
 
@@ -94,7 +158,8 @@ export class ReferencesService {
   }
 
   async updateItem(key: string, code: number, val: string) {
-    const entry = this.registry.find((e) => e.key === key);
+    const registry = await this.buildRegistry();
+    const entry = registry.find((e) => e.key === key);
 
     if (!entry) throw new NotFoundException(`Довідник "${key}" не знайдено`);
 
@@ -102,10 +167,45 @@ export class ReferencesService {
   }
 
   async deleteItem(key: string, code: number) {
-    const entry = this.registry.find((e) => e.key === key);
+    const registry = await this.buildRegistry();
+    const entry = registry.find((e) => e.key === key);
 
     if (!entry) throw new NotFoundException(`Довідник "${key}" не знайдено`);
 
     return entry.delete(code);
+  }
+
+  async createReference(title: string, description: string) {
+    const key =
+      title
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "") || `ref-${Date.now()}`;
+
+    if (HARDCODED_KEYS.has(key)) {
+      throw new ConflictException(`Довідник з ключем "${key}" вже існує`);
+    }
+
+    const existing = await this.prisma.refDirectory.findUnique({ where: { key } });
+
+    if (existing) {
+      throw new ConflictException(`Довідник з ключем "${key}" вже існує`);
+    }
+
+    return this.prisma.refDirectory.create({ data: { key, title, description } });
+  }
+
+  async deleteReference(key: string) {
+    if (HARDCODED_KEYS.has(key)) {
+      throw new BadRequestException(`Довідник "${key}" не можна видалити`);
+    }
+
+    const existing = await this.prisma.refDirectory.findUnique({ where: { key } });
+
+    if (!existing) throw new NotFoundException(`Довідник "${key}" не знайдено`);
+
+    await this.prisma.refDirectory.delete({ where: { key } });
   }
 }

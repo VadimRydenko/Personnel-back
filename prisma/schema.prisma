@@ -413,6 +413,26 @@ model Document {
   @@map("document")
 }
 
+model RefDirectory {
+  key         String    @id
+  title       String
+  description String    @default("")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  items       RefItem[]
+
+  @@map("ref_directory")
+}
+
+model RefItem {
+  id           Int          @id @default(autoincrement())
+  directoryKey String       @map("directory_key")
+  val          String
+  directory    RefDirectory @relation(fields: [directoryKey], references: [key], onDelete: Cascade)
+
+  @@index([directoryKey])
+  @@map("ref_item")
+}
+
 /// Призначення на посаду — звʼязок many-to-many між Employee і Place
 model EmployeePlace {
   code                     Int            @id @default(autoincrement())
